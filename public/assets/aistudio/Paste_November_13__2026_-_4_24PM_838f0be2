@@ -1,0 +1,182 @@
+# Prageeth Residences: Interactive 3D Tower (Google-Maps-style) (exact recreation prompt)
+
+Build a single-page, cinematic **3D room-rental website** called **Prageeth Residences** for a beachfront tower in Negombo, Sri Lanka.
+
+- **Scene:** a real-time 3D model of the tower stands on a beach with sea, palm trees, a road and low neighbouring buildings. The user can orbit, tilt, zoom and pan the camera like Google Maps 3D.
+- **Floors:** hovering a floor highlights it; clicking selects it and the camera glides to that level. A frosted-glass `Choose your floor` card on the right shows the level, unit type, units available and rent.
+- **Enter level:** pressing `Enter level N` flies the camera to that level's balcony, flashes through glass, and lands inside the room as a full-screen photo with hotspot pills, a `Level N` badge and a `Back to the tower` button.
+- **Feel:** slow, smooth, luxury, golden light. Everything eases; nothing snaps.
+
+Use one HTML file with plain CSS and vanilla JS. The ONLY library allowed is **three.js r160** (ES modules via an import map, pinned exactly):
+```html
+<script type="importmap">{"imports":{
+ "three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+ "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+```
+Reproduce every value, string and timing exactly. Implement in this **BUILD ORDER**, making sure each stage works before the next: (1) page, UI shell, poster; (2) 3D scene, tower, environment; (3) camera controls; (4) floor picking, highlight, card, rail; (5) availability, cutaway, units; (6) enter-level transition and interior view; (7) modal, phones, reduced motion.
+
+---
+
+## 1. Page basics
+- `<html lang="en">`, title `Prageeth Residences: Explore in 3D`, viewport `width=device-width,initial-scale=1`.
+- Font: Inter 400, 500, 600, 700 from `https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap` with preconnects to fonts.googleapis.com and fonts.gstatic.com (crossorigin).
+- Reset: `*{box-sizing:border-box;margin:0;padding:0}`. `html,body{height:100%}`.
+- body: background `#0e0c0a`, colour `#fff`, Inter, `overflow:hidden`, antialiased, `user-select:none`.
+- Buttons: inherit font and colour, no background, no border, `cursor:pointer`.
+- CSS variables: `--ease:cubic-bezier(.2,.8,.2,1)`, `--ease2:cubic-bezier(.65,0,.35,1)`, `--sans:"Inter",system-ui,-apple-system,sans-serif`, `--blue:#2f86ff`.
+
+## 2. Assets (7 attached photos, from an `images/` folder; identify each by what it shows)
+| File | What it shows | Use |
+|---|---|---|
+| `images/building.jpg` | Tall white-and-gold beachfront tower, palms, blue sky, beach | Loading poster and WebGL-fallback background only |
+| `images/balcony.jpg` | Balcony with wicker chairs, glass railing, sea and coconut trees | The "through the balcony" transition plate |
+| `images/studio.jpg` | Studio with bed, sofa, kitchenette | Interior for studio levels |
+| `images/apartment.jpg` | Open living room and kitchen, grey sofa, city view | Interior for 2-bedroom levels |
+| `images/bathroom.jpg` | Marble bathroom, freestanding tub, bedroom behind glass | Interior for spa-suite levels |
+| `images/suite.jpg` | Large bedroom, big bed, sea view through glass | Interior for the penthouse |
+| `images/lobby.jpg` | Hotel lobby, marble floor, reception | Interior for Level 1 |
+
+Photos use `background-size:cover; background-position:center` (never stretch). If an image fails to load, show a dark gradient with a small `image missing` label.
+
+**Loading poster:** on load, `images/building.jpg` fills the screen with a thin 2px white progress line at the bottom. When the 3D scene has rendered its first frame, wait 400ms, then fade the poster out over 1200ms while the intro camera flight starts (section 6).
+
+**Optional real model:** `const MODEL_URL=""`. If non-empty, load it with `GLTFLoader` (three/addons/loaders/GLTFLoader.js), scale it so its height fits the level table (section 3), place its base at y=0 and use it instead of the procedural tower. Floor picking then maps the hit point's `y` to a level using `levelY`. Leave it empty by default.
+
+## 3. Data
+```js
+const LEVELS=[
+  {from:1,  to:1,  type:"Lobby & Reception",             note:"Reception, lounge and 24/7 security",              rent:null,   img:"lobby.jpg",     status:"Common area"},
+  {from:2,  to:7,  type:"Studio rooms",                  note:"Open studio with kitchenette, 30 m²",              rent:45000,  img:"studio.jpg",    status:"Available"},
+  {from:8,  to:13, type:"One bedroom + sea-view balcony",note:"Sea-view balcony and full bathroom, 38 m²",        rent:65000,  img:"balcony.jpg",   status:"Available", balcony:true},
+  {from:14, to:19, type:"Two bedrooms + living room",    note:"Open living and kitchen with city views, 65 m²",   rent:85000,  img:"apartment.jpg", status:"Few left"},
+  {from:20, to:25, type:"Spa suites",                    note:"Marble bathroom with freestanding tub, 72 m²",     rent:120000, img:"bathroom.jpg",  status:"Available"},
+  {from:26, to:26, type:"Ocean penthouse suite",         note:"Master bedroom and terrace facing the sea, 95 m²", rent:150000, img:"suite.jpg",     status:"Booked"},
+];
+const HOTSPOTS={
+  "lobby.jpg":    [{l:"Reception",x:78,y:58},{l:"Lounge",x:24,y:70}],
+  "studio.jpg":   [{l:"Bedroom",x:28,y:62},{l:"Kitchenette",x:78,y:48}],
+  "balcony.jpg":  [{l:"Sea-View Balcony",x:40,y:62},{l:"Living Area",x:84,y:48}],
+  "apartment.jpg":[{l:"Living Room",x:32,y:64},{l:"Kitchen",x:78,y:48}],
+  "bathroom.jpg": [{l:"Bathroom",x:42,y:62},{l:"Bedroom",x:84,y:38}],
+  "suite.jpg":    [{l:"Master Bedroom",x:64,y:56},{l:"Sea-View Terrace",x:16,y:52}]
+};
+```
+- Levels 1 to 26 (`Lmin=1`, `Lmax=26`). For any level, find the entry where `from <= level <= to`.
+- Currency `LKR`, thousands separators, format `LKR 45,000 / month`. Level 1 shows `Common area` instead of a rent.
+- **Units:** every level 2 to 26 has 4 units numbered `<level>01`…`<level>04` (level 14 → `1401`…`1404`). Generate each unit's status deterministically from a seeded pseudo-random function (seed = level×10+unit): ~55% `Available`, ~20% `Few left`… no: per unit use only `Available` / `Booked` (65% / 35%). The penthouse (level 26) has 1 unit, `2601`, `Booked`. A level's status chip is derived: all units booked → `Booked`; at least one available → `Available`; exactly one available → `Few left`. (Ignore the `status` field in `LEVELS`, except for Level 1.) Add a comment in the code: `// TODO: replace generated unit statuses with real data`.
+- **Level heights (metres, 1 unit = 1 m):** level 1 height 6, every other level 3.2. Build `levelY[l]` (the y of each level's floor slab top): `levelY[1]=0`, `levelY[2]=6`, `levelY[l]=6+(l−2)×3.2`. Tower top (roof) ≈ `6+25×3.2 = 86`.
+
+## 4. UI layers and styling (HTML over a full-screen `<canvas>`)
+1. **Canvas** (fixed, inset 0, z 0): the three.js renderer. `renderer.setPixelRatio(Math.min(devicePixelRatio,2))`, `toneMapping=ACESFilmicToneMapping`, `outputColorSpace=SRGBColorSpace`, `shadowMap` enabled (PCFSoftShadowMap) on desktop, size 1024 on phones.
+2. **Logo** (fixed, top 3.6vh, centred, z 20): `PRAGEETH` Inter 600 15px, letter-spacing .5em, white, with `RESIDENCES` under it, Inter 500 9px, letter-spacing .42em, opacity .8, text-shadow `0 1px 8px rgba(0,0,0,.3)`.
+3. **Register interest** (fixed, top 3.2vh, right max(18px,2vw), z 20): pill, height 36px, padding 0 16px, background `var(--blue)`, white, Inter 600 12px, radius 999px, shadow `0 8px 24px -10px rgba(47,134,255,.7)`; hover scale 1.04.
+4. **Glass material `.glass`:**
+   - background `linear-gradient(155deg, rgba(255,255,255,.26), rgba(255,170,110,.16) 48%, rgba(255,255,255,.18))`
+   - `backdrop-filter:blur(22px) saturate(1.5)`
+   - border `1px solid rgba(255,255,255,.45)`
+   - shadows `inset 0 1px 0 rgba(255,255,255,.6), inset 0 -1px 0 rgba(255,255,255,.1), 0 24px 60px -28px rgba(40,20,10,.55)`
+5. **Floor card `.floor.glass`** (fixed, right max(18px,3vw), vertically centred, z 20, width `min(300px,80vw)`, padding 22px, radius 26px):
+   - Title `Choose` / `your floor` in Inter 500 24px, line-height 1.1.
+   - Description (Inter 400 12px, opacity .85, line-height 1.5): `Drag to rotate, scroll to zoom, then tap any floor of the tower to explore it.`
+   - `LEVEL` label (Inter 600 10px, letter-spacing .2em, opacity .8) and the big number (Inter 300 44px) in a rolling mask; small glass `▲` `▼` buttons (28px circles) next to the number step the level ±1.
+   - Unit type (Inter 600 15px), note (Inter 400 12px, opacity .85), units line `3 of 4 units available` (Inter 500 12px), and the rent line (Inter 600 14px), all in rolling masks (`.ln`, overflow hidden, 1.3em tall).
+   - Status chip: small pill, `Available` (green dot `#4ade80`), `Few left` (amber `#fbbf24`), `Booked` (grey `#9ca3af`), `Common area` (white).
+   - Button `Enter level N`: full width, height 44px, radius 999px, background `var(--blue)`, white, Inter 600 14px; hover brightness 1.1; press scale .97. If status is `Booked` it reads `Join waitlist`, white background, #111 text.
+6. **Level rail** (fixed, left max(18px,2vw), vertically centred, z 20): thin glass track (width 6px, height `min(56vh,420px)`, radius 999px, `rgba(255,255,255,.25)`) with a 14px white thumb at `(level−1)/25` from the bottom; labels `26` (top) and `1` (bottom) in Inter 500 11px, opacity .8. Clicking or dragging the track selects that level.
+7. **Map controls `.mapctl.glass`** (fixed, right max(18px,3vw), bottom 5vh, z 20, vertical stack, radius 18px, padding 6px, gap 4px, 40px buttons): `+` (zoom in), `−` (zoom out), a **compass** (a small needle that rotates opposite to the camera azimuth; clicking resets the azimuth to the default), a `3D/2D` tilt toggle (2D = top-down pol 0.15, 3D = default pol), and a reset-home icon.
+8. **Mode toggles** (fixed, left max(18px,2vw), bottom 5vh, z 20): glass pills, height 34px, Inter 500 12px: `Availability` and `Cutaway` (each toggles on/off; on = white background, #111 text).
+9. **Time toggle** (fixed, bottom 5vh, centred, z 20): a glass segmented control with `Day`, `Golden` (default), `Night`, with a sliding white pill (0.6s `--ease`) under the active segment.
+10. **Hint** (fixed, bottom calc(5vh + 52px), centred, z 20): `Drag to rotate · Scroll to zoom · Tap a floor` in Inter 500 12px, opacity .85; fades out after the first interaction.
+11. **Floating labels** (HTML, absolutely positioned, z 15, projected from 3D every frame; hidden when behind the camera or when the camera is closer than 25 units): small glass chips, Inter 500 11px, padding 5px 10px, radius 999px: `Prageeth Residences` (anchored above the tower roof), `Main entrance` (at the base), `Rooftop terrace` (at the roof), `Beach` (on the sand), `Negombo Beach` (over the sea). Fade opacity by distance.
+12. **Hover tooltip** (fixed, follows the pointer + 16px, z 25, glass, radius 12px, padding 6px 10px, Inter 500 12px): `Level 14 · Two bedrooms · LKR 85,000`. Hidden on touch devices.
+13. **Interior view `.interior`** (fixed, inset 0, z 40, `opacity:0; pointer-events:none`): `#iPlate` (balcony.jpg, cover), `#iRoom` (the room photo, cover), dark vignette, UI from section 8.
+14. **Curtain** (fixed, inset 0, z 35): `radial-gradient(circle at 50% 50%, rgba(255,255,255,.9), transparent 60%)`, opacity 0 normally.
+15. **Footer** (fixed, bottom-right, white 70%, Inter 400 11px): `Prageeth (Pvt) · Negombo, Sri Lanka · 0769356530`; hidden on phones and in the interior view.
+
+## 5. The 3D scene (all geometry built in code, no external models or textures)
+**Coordinates:** tower centred at x=0, z=0. The **sea is in the +z direction** (the tower's balcony/front facade faces +z). Beach from z=38 to z=90, sea beyond z=90. Behind the tower (−z) are the road and neighbours.
+
+**Sky and light:**
+- Use `Sky` from `three/addons/objects/Sky.js` with a sun vector; generate an environment map with `PMREMGenerator.fromScene(sky)` and set it as `scene.environment` (regenerate when the time of day changes, at most once per transition frame batch; throttle to every 6th frame during a transition).
+- `DirectionalLight` (the sun) follows the sun vector, with shadows (shadow camera ±130, bias −0.0004). `HemisphereLight` fill (sky `#cfe3ff`, ground `#caa57a`).
+- `scene.fog = new THREE.Fog(horizonColour, 220, 900)` matching the sky horizon.
+- **Time presets** (animate between them over 1500ms with ease; interpolate all values):
+  - `Day`: sun elevation 46°, azimuth 200°, exposure .55, window emissive 0, sky turbidity 4, rayleigh 1.2.
+  - `Golden` (default): sun elevation 6°, azimuth 255° (low sun over the sea, slightly to one side), exposure .45, window emissive 0.15 with warm colour `#ffb45e`, turbidity 8, rayleigh 2.4, mieCoefficient .006, mieDirectionalG .85.
+  - `Night`: sun elevation −9°, exposure .5, window emissive 1.3 (warm `#ffd9a0`), turbidity 2, rayleigh .4; point lights at the entrance (warm, intensity 60, distance 40) and along the road; also a faint moon-blue hemisphere light.
+
+**Ground and sea:**
+- Beach: a large `PlaneGeometry` (segments 64×64) from z=−60 to z=95 with vertex colours: grass `#6f8a52` behind the road, road strip dark grey `#3a3a3d` at z≈−18 to −30 with a thin lighter centre line, pale sand `#e6d3ac` from z=36 to the shoreline, wet-sand darker `#c9b48a` near the water. Gentle sand dunes via vertex displacement (±0.4 m).
+- Sea: `Water` from `three/addons/objects/Water.js` (size 2000×2000, positioned at y=−0.2, from z=88 outward), using a **procedurally generated normal map drawn on a canvas** (no downloaded texture; random blurred noise; repeat wrapping). Water colour `#0b5d7a`, distortionScale 2.4, `sunDirection` bound to the sun vector, `fog:true`. Animate `water.material.uniforms.time.value += delta*.5`. Foam: a thin white semi-transparent strip mesh at the shoreline with an animated opacity sine wave. If `Water` fails, fall back to a `MeshStandardMaterial` plane (colour `#0b6d8c`, roughness .15, metalness .1).
+- Sea horizon: add a distant dark-blue low strip so the horizon is clean.
+
+**The tower (procedural, group `tower`):**
+- **Podium (levels 1–2):** box 34×12×26 (x×y×z), white `#f4f1ec`, with a double-height glass lobby front: a dark glass box (`#8aa4b8`, metalness .1, roughness .08) inset on the +z face; a gold arched entrance canopy (an extruded arch `THREE.Shape`, depth 1.2, gold material `#d4a64a`, metalness .85, roughness .3) in the middle of the +z face, 8 m wide, 7 m tall; a small gold lantern light above it.
+- **Tower body (levels 3–26):** footprint 22×16 (x×z). For each level `l` from 2 to 26:
+  - A **slab**: a box 22×.45×16 at `levelY[l]`, white. On the +z and −z sides the slab extends 2.4 m outward as a **balcony** (the slab's depth becomes 16+4.8) with a **glass railing** (a thin box 22×1.1×.06, glass material, transparent, opacity .35) at the outer edge. Left/right sides have no balcony.
+  - The **glass curtain wall**: a box 22×2.75×16 inside the slab-to-slab space, dark blue-grey reflective glass (`MeshPhysicalMaterial`, colour `#6f8fa8`, metalness .15, roughness .06, clearcoat .6, `envMapIntensity` 1.2, `emissive` = the window emissive colour, emissiveIntensity controlled by the time preset, with a per-level random 0–1 multiplier so some windows glow and some do not at night).
+  - **Vertical gold fins:** on the +z facade, 5 gold vertical strips (0.5 wide, full height of the level, 0.35 deep) at x = −6, −3, 0, 3, 6, and the same pattern on the −z facade. The central three strips connect upward continuously like a spine (this is the gold spine in the reference photo). Do the fins as one `InstancedMesh` per facade (26 levels × 5).
+  - Concrete corner columns: four white boxes (0.8×3.2×0.8) at the corners.
+- **Penthouse level 26:** slightly set back (21×15) with a larger terrace.
+- **Crown (roof):** a dark charcoal arched parapet: two curved wings (use `TubeGeometry` along a `QuadraticBezierCurve3`, radius .5) on the roof, plus a flat dark sign panel on the +z side of the roof (6×1.8) showing the text `PRAGEETH` in white Inter 700 (draw on a canvas, use `CanvasTexture`). A rooftop terrace with a blue pool (a thin box, `#33b5d9`, emissive .3) and 6 tiny green shrubs.
+- **Shadows:** every tower mesh `castShadow` and `receiveShadow` (disable castShadow for glass railings).
+- **Merge geometry** where possible (use `InstancedMesh` for repeated parts) to keep the total draw calls under ~200.
+
+**Surroundings:**
+- **Palm trees:** two `InstancedMesh`es: trunks (tapered cylinder, 9–13 m tall, slightly bent via per-instance rotation and a vertex bend in the geometry) and fronds (7 curved plane leaves per palm, double-sided, green `#3f7f3a` with a slight gradient via vertex colours). ~70 palms on desktop, ~30 on phones. Place them in two groves left and right of the tower (x from ±30 to ±120, z from 20 to 60) and a few in front of the beach; none inside the tower footprint. Add gentle sway: a sin offset on instance rotation updated every other frame.
+- **Neighbours:** ~16 low boxes (heights 8–30 m, muted colours `#d8d2c8`, `#c9c3b8`, `#e6e0d4`, some with a darker roof slab) placed behind the road and to the far left/right (x beyond ±70 or z < −40), each with a few emissive window rows at night.
+- **Road:** a road strip with a dashed centre line, plus 5 street lamps (pole + emissive bulb) that glow at night.
+- **Boats:** three small wooden boats on the sand (each a stretched, scaled half-capsule `#a8743c` with a pale stripe), at x=40, 52, 64 and z≈52.
+- **Beach details:** a few small low shrubs along the dune line in front of the tower (green blobs `#5a7f3d`), a thin darker footpath leading from the tower entrance to the beach.
+- A simple tiny pool of people? **No**. Do not add people or cars.
+
+## 6. Camera (custom orbit, no OrbitControls dependency)
+**State:** `target` (Vector3), `az` (azimuth, radians), `pol` (polar angle from the vertical, radians), `dist`. Camera position = `target + dist × (sin(pol)sin(az), cos(pol), sin(pol)cos(az))`. Keep the camera looking at `target`.
+- **Defaults:** `target=(0,40,0)`, `az=0.55`, `pol=1.2`, `dist=170`. FOV 38°, near 1, far 3000.
+- **Limits:** `dist` 16–320; `pol` 0.15–1.52 (never below the ground); `target.y` 0–95; `target.xz` within radius 70 of the origin.
+- **Damping:** keep a velocity for `az`, `pol` and `dist`; each frame the live value moves toward the goal value by `× .12` (so all movement glides). Frame-rate independent: use `1 − Math.pow(1 − .12, dt×60)`.
+- **Mouse:** left-drag rotates (`az −= dx×.005`, `pol −= dy×.004`); right-drag (or Shift+drag) pans the target in the ground plane (speed proportional to `dist`); wheel zooms exponentially (`dist *= Math.exp(deltaY×.0012)`), pointer-centred is not needed.
+- **Touch:** one finger rotates; two fingers pinch to zoom (ratio of finger distance) and drag vertically to tilt (`pol`).
+- **Click vs drag:** a pointer movement under 6px between down and up counts as a click (used for floor picking).
+- **Auto-orbit:** after 8 s with no input and with no level selected, `az += .02 × dt` (slow). Any input stops it.
+- **Intro flight (3 s, `--ease2` curve):** after the poster fades, fly the camera from `dist=320, az=1.4, pol=1.45, target.y=25` to the defaults. Block input while it runs.
+- **Keys:** `ArrowLeft/Right` rotate ±.2 rad, `+`/`−` zoom, `ArrowUp/ArrowDown` change the level ±1, `Enter` enters the level, `Esc` goes back or closes the modal.
+
+## 7. Floor picking, card, rail, availability, cutaway
+- **Hover (desktop):** raycast against the tower group every frame while the pointer is moving (throttle to 30 Hz). Map the hit point `y` to a level with `levelY` (the level whose range `[levelY[l], levelY[l+1])` contains `y`, clamped to 1–26). Show a **highlight band**: a box slightly larger than the footprint (+0.5 m) at that level's height, `MeshBasicMaterial`, colour `#6fb4ff`, opacity .28, `depthWrite:false`, `blending:AdditiveBlending`, plus an `EdgesGeometry` outline (white, opacity .8). Fade its opacity in/out over 150ms. Show the hover tooltip (section 4.12).
+- **Click:** selects that level (card updates, rail thumb moves, a stronger highlight band stays on: opacity .45 with a slow pulse of ±.08 at 1.6 s). Clicking empty space/sea/sky deselects only if a **Cutaway** is off; it never hides the card.
+- **Level change (any source):** goal `target.y = levelY[l] + 1.6`; `dist` goal = `max(current dist, 55)` clamped down to `70` if currently farther than 70 (glide 1.4 s, `--ease2`); azimuth is **kept** as chosen by the user. The currently selected level defaults to **6** at load (shown in the card, highlighted).
+- **Card update:** whenever the level changes, roll the number, unit type, note, units line, rent line and status chip: old text `translateY(0)` → `−110%`, new text `110%` → `0` over 520ms with `--ease`. The button label becomes `Enter level N` or `Join waitlist`.
+- **Availability mode** (`Availability` toggle on): for each level 2–26, show a thin horizontal colour strip (box 22.2×.7×16.2 at the slab, `MeshBasicMaterial`, opacity .55, `depthWrite:false`) tinted green `#4ade80` (Available), amber `#fbbf24` (Few left) or grey-red `#c0584f` (Booked). Fade in over 500ms, staggered from the bottom to the top (15ms per level). A small legend (glass chip, bottom centre above the hint) explains: `Available · Few left · Booked`.
+- **Cutaway mode** (`Cutaway` toggle on): all levels above the selected level fade out (scale their group's y to 0.001 over 600ms, then `visible=false`) and a cap is shown: the selected level's slab top is exposed. On that slab show a **simple floor plan**: 4 unit rooms (each ~9.5×6.5 m) as thin white walls (0.15 m wide, 2.6 m tall) forming a 2×2 grid around a central corridor, with each unit's floor tinted by its status (the same three colours, opacity .6) and a floating label `1401` with `Available`/`Booked` (small glass chip, projected to the screen). Clicking a unit label selects it and updates the card's units line to `Unit 1402 · Available`. Turning Cutaway off restores the hidden levels with the reverse animation (600ms, bottom to top, 20ms stagger). Level 1 and 26 have no cutaway plan (just the cap).
+- **Level rail & ▲▼ buttons:** step the level and trigger the same behaviours.
+
+## 8. Enter-level transition and interior view
+**Enter level N (about 3.4 s):** lock all input while it runs.
+1. **0 – 1400ms:** camera flies (`--ease2`) to a view of that level's balcony on the +z facade: `az=0`, `pol=1.5`, `dist=15`, `target=(0, levelY+1.6, 12)` (for level 1, target the entrance canopy: `target=(0,3,19)`). The floor card, rail, map controls, toggles, time control and floating labels fade out and slide away over 500ms.
+2. **1000 – 1800ms:** the curtain flashes to opacity .55 and back to 0, while `.interior` fades 0 → 1 over 800ms, showing `#iPlate` (balcony.jpg) at `scale(1.2)`. If the level's data has `balcony:true`, skip the plate and start directly on `#iRoom`.
+3. **1800 – 3400ms:** `#iPlate` pushes in `scale(1.0 → 1.35)` while `#iRoom` (the level's room photo) crossfades in (opacity 0 → 1 over 1200ms, starting at 2000ms) with a `scale(1.3 → 1)` settle (1500ms, `--ease`).
+4. Show the interior UI; unlock input. Stop rendering the 3D scene (`renderer.setAnimationLoop(null)`) while the interior view is open, and restart it on return.
+
+**Interior UI:**
+- **Back to the tower** (top left, z 50): glass pill, height 36px, padding 0 16px, Inter 500 13px with a `←` icon. Reverses the transition in 1800ms (interior fades out, the 3D scene restarts, the camera glides back to the saved `az`, `pol`, `dist`, `target`, the card returns at the same level). `Esc` does the same.
+- **Level badge** (bottom left, z 50): glass chip, radius 16px, padding 12px 18px, `LEVEL` label over a 24px number, e.g. `Level 14` (rolls when changed).
+- **Info chip** (bottom right, z 50, glass): unit type, rent line, units line.
+- **Hotspots** from `HOTSPOTS[img]`: each a pill at `x%, y%` of the screen. Default: 8px white dot with a pulsing ring (scale 1 → 2.4, opacity .6 → 0, 1.8s infinite). Hover/tap expands to a blue pill (`var(--blue)`, label Inter 600 11px white, padding 6px 12px). Clicking pans/zooms `#iRoom` toward the point (`scale 1 → 1.18`, 700ms `--ease`); click again or on empty space resets.
+- **Level stepping inside the room:** glass `▲` and `▼` buttons (right side, middle) go to the next/previous level; the room photo crossfades in 600ms and the badge/info roll to the new values.
+
+## 9. Register interest / booking modal
+- Opens from `Register interest` or `Join waitlist`. Glass modal, centred, width `min(420px,92vw)`, radius 24px, padding 24px, blurred dark backdrop `rgba(0,0,0,.35)`.
+- Fields: `Name`, `Phone / WhatsApp`, `Preferred viewing date`, `Message` (prefilled: `I'm interested in Level N, <unit type>, LKR <rent>/month.`, adding `Unit <number>` if a unit is selected).
+- Primary button `Send on WhatsApp` opens `https://wa.me/94769356530?text=<URL-encoded message with all fields>`.
+- Secondary link `Or call 0769356530` (`tel:0769356530`).
+- Close with an X or `Esc`. Do not store data, no localStorage.
+
+## 10. Performance and fallback
+- Render only when the tab is visible (`document.hidden` pauses the loop) and when the interior view is closed.
+- Phones: pixel ratio max 1.5, shadow map 1024, palms ≤ 30, no water reflections (use the fallback water material), neighbours ≤ 8.
+- If WebGL is unavailable or the scene throws, keep `images/building.jpg` as a full-screen background, hide the 3D-only controls (map controls, mode toggles, time toggle, labels), and keep the floor card, rail (level selection) and interior view working in 2D.
+
+## 11. Phones (≤767px) and reduced motion
+- **Phones:** the floor card docks to the bottom as a full-width sheet (left/right 12px, bottom 12px, radius 22px, padding 16px) and the note line is hidden; the level rail is hidden; map controls shrink to 36px buttons and move to the right, above the sheet; `Availability`/`Cutaway` toggles move to the top-left under the logo; the time toggle sits above the sheet; the hint reads `Drag · Pinch · Tap a floor`; the logo and Register interest shrink (logo 13px, pill 32px tall); footer hidden; hotspot pills always expanded.
+- **Reduced motion:** no intro flight (start at the defaults), no auto-orbit, camera moves snap (`× 1`), no palm sway, no rolling text (instant swap), the enter-level transition becomes a 400ms crossfade straight to the room photo, hotspot rings do not pulse, time-of-day changes switch instantly.

@@ -1,0 +1,8 @@
+{
+  "name": "Remix Remix Remix Remix Prageeth (Pvt): Spatial Room Rental",
+  "description": "A visionOS-style spatial room-rental experience for Prageeth (Pvt) in Negombo, Sri Lanka.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

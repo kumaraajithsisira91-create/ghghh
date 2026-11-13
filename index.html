@@ -1,0 +1,2352 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>Prageeth Residences — Negombo, Sri Lanka</title>
+  <meta name="description" content="Prageeth Residences beachfront tower in Negombo, Sri Lanka. Explore the tower from levels 1 to 26 and step inside each residence.">
+  <meta property="og:title" content="Prageeth Residences — Negombo, Sri Lanka">
+  <meta property="og:description" content="Prageeth Residences beachfront tower in Negombo, Sri Lanka. Explore the tower from levels 1 to 26 and step inside each residence.">
+  <meta property="og:type" content="website">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --ease:cubic-bezier(.2,.8,.2,1);
+      --ease2:cubic-bezier(.65,0,.35,1);
+      --sans:"Inter",system-ui,-apple-system,sans-serif;
+      --blue:#2f86ff;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%}
+    body{
+      background:#0e0c0a;
+      color:#fff;
+      font-family:var(--sans);
+      overflow:hidden;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      user-select:none;
+      -webkit-user-select:none;
+    }
+    button{
+      font:inherit;
+      color:inherit;
+      background:none;
+      border:0;
+      cursor:pointer;
+    }
+    a{color:inherit;text-decoration:none}
+
+    .glass{
+      background:linear-gradient(155deg, rgba(255,255,255,.26), rgba(255,170,110,.16) 48%, rgba(255,255,255,.18));
+      backdrop-filter:blur(22px) saturate(1.5);
+      -webkit-backdrop-filter:blur(22px) saturate(1.5);
+      border:1px solid rgba(255,255,255,.45);
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.6), inset 0 -1px 0 rgba(255,255,255,.1), 0 24px 60px -28px rgba(40,20,10,.55);
+    }
+
+    /* Background poster, blur canvas & main frame-scrub canvas */
+    .poster{
+      position:fixed;
+      inset:0;
+      z-index:0;
+      background-color:#0e0c0a;
+      background-image:url('https://majestic-youtiao-f58857.netlify.app/images/building.jpg');
+      background-size:cover;
+      background-position:center;
+      background-repeat:no-repeat;
+      transition:opacity 800ms var(--ease);
+    }
+    .poster.hidden{
+      opacity:0;
+      pointer-events:none;
+    }
+    #blurBg{
+      position:fixed;
+      inset:0;
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      filter:blur(34px) saturate(1.1);
+      transform:scale(1.15);
+      z-index:1;
+      opacity:0;
+      transition:opacity 400ms var(--ease);
+      pointer-events:none;
+    }
+    #blurBg.ready{opacity:1}
+    #main{
+      position:fixed;
+      inset:0;
+      width:100%;
+      height:100%;
+      display:block;
+      z-index:2;
+      touch-action:none;
+      cursor:grab;
+    }
+    #main.dragging{cursor:grabbing}
+    #main.soft-edges{
+      mask-image:linear-gradient(to right, transparent, #000 10%, #000 90%, transparent);
+      -webkit-mask-image:linear-gradient(to right, transparent, #000 10%, #000 90%, transparent);
+    }
+
+    /* Progress line & frame error notice */
+    .progress-line{
+      position:fixed;
+      left:0;
+      right:0;
+      bottom:0;
+      height:2px;
+      z-index:105;
+      background:rgba(255,255,255,.18);
+      pointer-events:none;
+      opacity:1;
+      transition:opacity 450ms var(--ease);
+    }
+    .progress-line.done{opacity:0}
+    .progress-fill{
+      height:100%;
+      width:0%;
+      background:#fff;
+      transition:width 200ms var(--ease);
+    }
+
+    /* Logo & Register button */
+    .logo{
+      position:fixed;
+      top:3.6vh;
+      left:50%;
+      transform:translateX(-50%);
+      z-index:20;
+      text-align:center;
+      pointer-events:none;
+      text-shadow:0 1px 8px rgba(0,0,0,.3);
+    }
+    .logo-main{
+      font-weight:600;
+      font-size:15px;
+      letter-spacing:.5em;
+      padding-left:.5em;
+      color:#fff;
+      line-height:1.1;
+      white-space:nowrap;
+    }
+    .logo-sub{
+      margin-top:4px;
+      font-weight:500;
+      font-size:9px;
+      letter-spacing:.42em;
+      padding-left:.42em;
+      opacity:.8;
+      color:#fff;
+      line-height:1.1;
+      white-space:nowrap;
+    }
+
+    .reg-btn{
+      position:fixed;
+      top:3.2vh;
+      right:max(18px,2vw);
+      z-index:20;
+      height:36px;
+      padding:0 16px;
+      border-radius:999px;
+      background:var(--blue);
+      color:#fff;
+      font-weight:600;
+      font-size:12px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      white-space:nowrap;
+      box-shadow:0 8px 24px -10px rgba(47,134,255,.7);
+      transition:transform .25s var(--ease), filter .2s var(--ease);
+    }
+    .reg-btn:hover{transform:scale(1.04)}
+    .reg-btn:active{transform:scale(.97)}
+
+    /* Rolling text mask */
+    .ln{
+      position:relative;
+      overflow:hidden;
+      height:1.3em;
+      line-height:1.3;
+    }
+    .ln-inner{
+      display:block;
+      line-height:1.3;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      will-change:transform,opacity;
+    }
+    .ln-enter{
+      position:absolute;
+      left:0;
+      right:0;
+      top:0;
+    }
+
+    /* Floor card */
+    .floor{
+      position:fixed;
+      right:max(18px,3vw);
+      top:50%;
+      transform:translateY(-50%);
+      z-index:20;
+      width:min(300px,80vw);
+      padding:22px;
+      border-radius:26px;
+      color:#fff;
+      text-shadow:0 1px 8px rgba(0,0,0,.18);
+      will-change:transform,opacity;
+      transition:opacity .5s var(--ease), transform .5s var(--ease);
+    }
+    .floor.ui-hidden{
+      opacity:0;
+      transform:translateY(-50%) translateX(30px);
+      pointer-events:none;
+    }
+    .f-title{
+      font-weight:500;
+      font-size:24px;
+      line-height:1.1;
+      letter-spacing:-.01em;
+    }
+    .f-desc{
+      margin-top:8px;
+      font-weight:400;
+      font-size:12px;
+      opacity:.85;
+      line-height:1.45;
+    }
+    .f-level-row{
+      margin-top:14px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding-top:12px;
+      border-top:1px solid rgba(255,255,255,.22);
+    }
+    .f-level-lbl{
+      font-weight:600;
+      font-size:10px;
+      letter-spacing:.2em;
+      opacity:.85;
+    }
+    .f-level-ctrl{
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .f-step-col{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+    .f-step-btn{
+      width:28px;
+      height:28px;
+      border-radius:50%;
+      display:grid;
+      place-items:center;
+      font-size:10px;
+      color:#fff;
+      transition:transform .2s var(--ease), opacity .2s var(--ease);
+    }
+    .f-step-btn:hover:not(:disabled){transform:scale(1.08)}
+    .f-step-btn:active:not(:disabled){transform:scale(.94)}
+    .f-step-btn:disabled{opacity:.35;cursor:default}
+    .f-level-num{
+      font-weight:300;
+      font-size:44px;
+      line-height:1.1;
+      height:1.1em;
+      min-width:2.1ch;
+      text-align:right;
+      font-variant-numeric:tabular-nums;
+    }
+    .f-level-num .ln-inner{
+      line-height:1.1;
+      text-align:right;
+    }
+    .f-meta{
+      margin-top:10px;
+      display:flex;
+      flex-direction:column;
+      gap:5px;
+    }
+    .f-type{
+      font-weight:600;
+      font-size:15px;
+    }
+    .f-note{
+      font-weight:400;
+      font-size:12px;
+      opacity:.85;
+    }
+    .f-units{
+      font-weight:500;
+      font-size:12px;
+      opacity:.92;
+    }
+    .f-rent-row{
+      margin-top:8px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+    }
+    .f-rent{
+      flex:1;
+      min-width:0;
+      font-weight:600;
+      font-size:14px;
+      font-variant-numeric:tabular-nums;
+    }
+    .f-status-wrap{
+      flex-shrink:0;
+      height:24px;
+      min-width:98px;
+    }
+    .f-status-wrap .ln-inner{
+      display:flex;
+      justify-content:flex-end;
+      line-height:1;
+    }
+    .status-chip{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      height:24px;
+      padding:0 9px;
+      border-radius:999px;
+      background:rgba(0,0,0,.26);
+      border:1px solid rgba(255,255,255,.24);
+      font-size:11px;
+      font-weight:500;
+      color:#fff;
+      white-space:nowrap;
+      text-shadow:none;
+    }
+    .status-dot{
+      width:6px;
+      height:6px;
+      border-radius:50%;
+      flex-shrink:0;
+    }
+    .enter-btn{
+      margin-top:14px;
+      width:100%;
+      height:44px;
+      border-radius:999px;
+      background:var(--blue);
+      color:#fff;
+      font-weight:600;
+      font-size:14px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-shadow:none;
+      box-shadow:0 10px 24px -10px rgba(47,134,255,.65);
+      transition:transform .2s var(--ease), filter .2s var(--ease), background .25s var(--ease), color .25s var(--ease);
+    }
+    .enter-btn:hover{filter:brightness(1.08)}
+    .enter-btn:active{transform:scale(.97)}
+    .enter-btn.is-waitlist{
+      background:#fff;
+      color:#111;
+      box-shadow:0 10px 24px -10px rgba(0,0,0,.35);
+    }
+    .enter-btn.is-waitlist:hover{filter:brightness(.96)}
+
+    /* Level rail */
+    .rail-wrap{
+      position:fixed;
+      left:max(18px,2vw);
+      top:50%;
+      transform:translateY(-50%);
+      z-index:20;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:10px;
+      will-change:transform,opacity;
+      transition:opacity .5s var(--ease), transform .5s var(--ease);
+    }
+    .rail-wrap.ui-hidden{
+      opacity:0;
+      transform:translateY(-50%) translateX(-30px);
+      pointer-events:none;
+    }
+    .rail-lbl{
+      font-weight:500;
+      font-size:11px;
+      opacity:.85;
+      font-variant-numeric:tabular-nums;
+      text-shadow:0 1px 6px rgba(0,0,0,.35);
+    }
+    .rail-track{
+      position:relative;
+      width:24px;
+      height:min(56vh,420px);
+      display:flex;
+      justify-content:center;
+      cursor:pointer;
+      touch-action:none;
+    }
+    .rail-bar{
+      width:6px;
+      height:100%;
+      border-radius:999px;
+      background:rgba(255,255,255,.25);
+      backdrop-filter:blur(12px);
+      -webkit-backdrop-filter:blur(12px);
+      border:1px solid rgba(255,255,255,.35);
+      box-shadow:inset 0 1px 2px rgba(0,0,0,.18);
+    }
+    .rail-thumb{
+      position:absolute;
+      left:50%;
+      bottom:0;
+      width:14px;
+      height:14px;
+      margin-left:-7px;
+      margin-bottom:-7px;
+      border-radius:50%;
+      background:#fff;
+      box-shadow:0 2px 10px rgba(0,0,0,.45), 0 0 0 2px rgba(255,255,255,.35);
+      pointer-events:none;
+      will-change:transform;
+    }
+
+    /* Segmented mode control (Rotate / Climb) */
+    .mode-toggle{
+      position:fixed;
+      bottom:5vh;
+      left:50%;
+      transform:translateX(-50%);
+      z-index:20;
+      display:flex;
+      align-items:center;
+      padding:4px;
+      border-radius:999px;
+      transition:opacity .5s var(--ease), transform .5s var(--ease);
+    }
+    .mode-toggle.ui-hidden{
+      opacity:0;
+      transform:translateX(-50%) translateY(20px);
+      pointer-events:none;
+    }
+    .mode-pill-bg{
+      position:absolute;
+      top:4px;
+      bottom:4px;
+      left:4px;
+      border-radius:999px;
+      background:#fff;
+      box-shadow:0 4px 12px rgba(0,0,0,.22);
+      transition:transform .45s var(--ease), width .45s var(--ease);
+      z-index:0;
+    }
+    .mode-btn{
+      position:relative;
+      z-index:1;
+      height:32px;
+      padding:0 18px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:500;
+      color:#fff;
+      transition:color .3s var(--ease);
+      white-space:nowrap;
+    }
+    .mode-btn.active{
+      color:#111;
+      font-weight:600;
+    }
+
+    /* Floating context chips */
+    .chips-layer{
+      position:fixed;
+      inset:0;
+      z-index:20;
+      pointer-events:none;
+      transition:opacity .45s var(--ease);
+    }
+    .chips-layer.ui-hidden{opacity:0}
+    .scene-chip{
+      position:absolute;
+      left:50%;
+      transform:translateX(-50%) translateY(6px);
+      padding:5px 10px;
+      border-radius:999px;
+      font-size:11px;
+      font-weight:500;
+      color:#fff;
+      white-space:nowrap;
+      text-shadow:0 1px 4px rgba(0,0,0,.35);
+      opacity:0;
+      transition:opacity 400ms var(--ease), transform 400ms var(--ease);
+    }
+    .scene-chip.show{
+      opacity:1;
+      transform:translateX(-50%) translateY(0);
+    }
+    .chip-sea{top:16vh}
+    .chip-pool{top:16vh}
+    .chip-roof{top:16vh}
+    .chip-entrance{bottom:calc(5vh + 86px)}
+
+    /* Hint */
+    .hint{
+      position:fixed;
+      bottom:calc(5vh + 52px);
+      left:50%;
+      transform:translateX(-50%);
+      z-index:20;
+      font-weight:500;
+      font-size:12px;
+      opacity:0;
+      pointer-events:none;
+      text-shadow:0 1px 8px rgba(0,0,0,.45);
+      white-space:nowrap;
+      transition:opacity .6s var(--ease);
+    }
+    .hint.show{opacity:.85}
+
+    /* Footer */
+    .footer-line{
+      position:fixed;
+      right:max(18px,2vw);
+      bottom:14px;
+      z-index:20;
+      color:rgba(255,255,255,.7);
+      font-weight:400;
+      font-size:11px;
+      pointer-events:none;
+      text-shadow:0 1px 6px rgba(0,0,0,.35);
+      white-space:nowrap;
+      transition:opacity .45s var(--ease);
+    }
+    .footer-line.ui-hidden{opacity:0}
+
+    /* Transition curtain */
+    .curtain{
+      position:fixed;
+      inset:0;
+      z-index:35;
+      pointer-events:none;
+      opacity:0;
+      background:radial-gradient(circle at 50% 50%, rgba(255,255,255,.92), transparent 64%);
+      will-change:opacity;
+    }
+
+    /* Interior view */
+    .interior{
+      position:fixed;
+      inset:0;
+      z-index:40;
+      opacity:0;
+      pointer-events:none;
+      overflow:hidden;
+      background:#0e0c0a;
+    }
+    .interior.active{pointer-events:auto}
+    .interior-img{
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+      will-change:transform,opacity;
+      transform-origin:center center;
+    }
+    #iRoom{z-index:1}
+    #iRoomFade{z-index:2;opacity:0;pointer-events:none}
+    .interior-vignette{
+      position:absolute;
+      inset:0;
+      z-index:3;
+      pointer-events:none;
+      background:
+        linear-gradient(to bottom, rgba(0,0,0,.28), transparent 24%, transparent 66%, rgba(0,0,0,.46)),
+        radial-gradient(circle at 50% 50%, transparent 55%, rgba(0,0,0,.34));
+    }
+
+    /* Interior UI */
+    .room-ui{
+      position:fixed;
+      inset:0;
+      z-index:50;
+      opacity:0;
+      pointer-events:none;
+      transition:opacity .45s var(--ease);
+    }
+    .room-ui.active{opacity:1}
+    .room-ctrl{pointer-events:auto}
+    .back-btn{
+      position:fixed;
+      top:3.2vh;
+      left:max(18px,2vw);
+      height:36px;
+      padding:0 16px;
+      border-radius:999px;
+      display:inline-flex;
+      align-items:center;
+      gap:7px;
+      font-weight:500;
+      font-size:13px;
+      color:#fff;
+      text-shadow:0 1px 6px rgba(0,0,0,.25);
+      transition:transform .2s var(--ease), background .2s var(--ease);
+    }
+    .back-btn:hover{transform:scale(1.03)}
+    .back-btn:active{transform:scale(.97)}
+
+    .lvl-badge{
+      position:fixed;
+      bottom:4vh;
+      left:max(18px,2vw);
+      border-radius:16px;
+      padding:12px 18px;
+      color:#fff;
+      text-shadow:0 1px 6px rgba(0,0,0,.25);
+    }
+    .lvl-badge-kicker{
+      font-weight:600;
+      font-size:10px;
+      letter-spacing:.2em;
+      opacity:.8;
+    }
+    .lvl-badge-num{
+      margin-top:2px;
+      font-weight:500;
+      font-size:24px;
+      line-height:1.2;
+      height:1.2em;
+      min-width:110px;
+      font-variant-numeric:tabular-nums;
+    }
+    .lvl-badge-num .ln-inner{line-height:1.2}
+
+    .info-chip{
+      position:fixed;
+      bottom:4vh;
+      right:max(18px,2vw);
+      border-radius:18px;
+      padding:12px 18px;
+      min-width:240px;
+      max-width:min(360px, 54vw);
+      color:#fff;
+      text-shadow:0 1px 6px rgba(0,0,0,.25);
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+    .info-type{font-weight:600;font-size:14px}
+    .info-rent{
+      font-weight:500;
+      font-size:13px;
+      opacity:.92;
+      font-variant-numeric:tabular-nums;
+    }
+    .info-units{font-weight:500;font-size:12px;opacity:.88}
+
+    .room-steppers{
+      position:fixed;
+      right:max(18px,2vw);
+      top:50%;
+      transform:translateY(-50%);
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+    .step-btn{
+      width:38px;
+      height:38px;
+      border-radius:50%;
+      display:grid;
+      place-items:center;
+      font-size:12px;
+      color:#fff;
+      transition:transform .2s var(--ease), opacity .2s var(--ease);
+    }
+    .step-btn:hover:not(:disabled){transform:scale(1.08)}
+    .step-btn:active:not(:disabled){transform:scale(.94)}
+    .step-btn:disabled{opacity:.35;cursor:default}
+
+    /* Hotspots */
+    .hotspots{
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+    }
+    .hotspot{
+      position:absolute;
+      transform:translate(-50%,-50%);
+      pointer-events:auto;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:8px;
+      border-radius:999px;
+      background:rgba(255,255,255,.16);
+      backdrop-filter:blur(10px);
+      -webkit-backdrop-filter:blur(10px);
+      border:1px solid rgba(255,255,255,.35);
+      transition:background .28s var(--ease), border-color .28s var(--ease), padding .28s var(--ease), box-shadow .28s var(--ease);
+    }
+    .hotspot .h-dot{
+      position:relative;
+      width:8px;
+      height:8px;
+      border-radius:50%;
+      background:#fff;
+      flex-shrink:0;
+    }
+    .hotspot .h-dot::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      border-radius:50%;
+      border:1.5px solid rgba(255,255,255,.85);
+      animation:hotspotPulse 1.8s ease-out infinite;
+    }
+    @keyframes hotspotPulse{
+      0%{transform:scale(1);opacity:.6}
+      100%{transform:scale(2.4);opacity:0}
+    }
+    .hotspot .h-lbl{
+      max-width:0;
+      overflow:hidden;
+      opacity:0;
+      white-space:nowrap;
+      font-weight:600;
+      font-size:11px;
+      color:#fff;
+      transition:max-width .32s var(--ease), opacity .24s var(--ease);
+    }
+    .hotspot:hover,
+    .hotspot.active{
+      background:var(--blue);
+      border-color:rgba(255,255,255,.45);
+      padding:6px 12px;
+      box-shadow:0 8px 24px -8px rgba(47,134,255,.75);
+    }
+    .hotspot:hover .h-dot,
+    .hotspot.active .h-dot{display:none}
+    .hotspot:hover .h-lbl,
+    .hotspot.active .h-lbl{
+      max-width:180px;
+      opacity:1;
+    }
+
+    /* Booking modal */
+    .modal-wrap{
+      position:fixed;
+      inset:0;
+      z-index:90;
+      background:rgba(0,0,0,.35);
+      backdrop-filter:blur(14px);
+      -webkit-backdrop-filter:blur(14px);
+      display:grid;
+      place-items:center;
+      padding:16px;
+      opacity:0;
+      pointer-events:none;
+      transition:opacity .35s var(--ease);
+    }
+    .modal-wrap.open{opacity:1;pointer-events:auto}
+    .modal{
+      width:min(420px, 92vw);
+      border-radius:24px;
+      padding:24px;
+      color:#fff;
+      text-shadow:0 1px 6px rgba(0,0,0,.22);
+      transform:scale(.95) translateY(10px);
+      transition:transform .35s var(--ease);
+      max-height:92vh;
+      overflow-y:auto;
+    }
+    .modal-wrap.open .modal{transform:scale(1) translateY(0)}
+    .modal-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:16px;
+    }
+    .modal-title{font-weight:600;font-size:18px;letter-spacing:-.01em}
+    .modal-close{
+      width:32px;
+      height:32px;
+      border-radius:50%;
+      display:grid;
+      place-items:center;
+      background:rgba(255,255,255,.18);
+      color:#fff;
+      transition:background .2s var(--ease), transform .2s var(--ease);
+    }
+    .modal-close:hover{background:rgba(255,255,255,.32);transform:scale(1.06)}
+    .form-grid{display:flex;flex-direction:column;gap:12px}
+    .field{display:flex;flex-direction:column;gap:5px}
+    .field label{font-size:12px;font-weight:500;opacity:.9}
+    .field input,
+    .field textarea{
+      width:100%;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.4);
+      background:rgba(255,255,255,.16);
+      padding:10px 13px;
+      font:inherit;
+      font-size:13px;
+      color:#fff;
+      outline:none;
+      transition:border-color .2s var(--ease), background .2s var(--ease);
+    }
+    .field input::placeholder,
+    .field textarea::placeholder{color:rgba(255,255,255,.6)}
+    .field input:focus,
+    .field textarea:focus{
+      border-color:#fff;
+      background:rgba(255,255,255,.24);
+    }
+    .field textarea{min-height:80px;resize:vertical}
+    .wa-btn{
+      margin-top:4px;
+      height:44px;
+      width:100%;
+      border-radius:999px;
+      background:var(--blue);
+      color:#fff;
+      font-weight:600;
+      font-size:14px;
+      text-shadow:none;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      box-shadow:0 10px 24px -10px rgba(47,134,255,.7);
+      transition:transform .2s var(--ease), filter .2s var(--ease);
+    }
+    .wa-btn:hover{filter:brightness(1.08);transform:scale(1.01)}
+    .wa-btn:active{transform:scale(.98)}
+    .call-link{
+      display:block;
+      margin-top:4px;
+      text-align:center;
+      font-size:12px;
+      font-weight:500;
+      opacity:.88;
+      text-decoration:underline;
+      text-underline-offset:3px;
+    }
+    .call-link:hover{opacity:1}
+
+    /* Phones (<= 767px) */
+    @media (max-width:767px){
+      #blurBg{display:none}
+      #main.soft-edges{mask-image:none;-webkit-mask-image:none}
+      .logo{top:2.4vh}
+      .logo-main{font-size:13px;letter-spacing:.44em;padding-left:.44em}
+      .logo-sub{font-size:8px;letter-spacing:.36em;padding-left:.36em}
+      .reg-btn{
+        top:2.2vh;
+        right:12px;
+        height:32px;
+        padding:0 12px;
+        font-size:11px;
+      }
+      .back-btn{
+        top:2.2vh;
+        left:12px;
+        height:32px;
+        padding:0 12px;
+        font-size:12px;
+      }
+      .rail-wrap{display:none}
+      .footer-line{display:none}
+      .floor{
+        left:12px;
+        right:12px;
+        bottom:12px;
+        top:auto;
+        transform:none;
+        width:auto;
+        border-radius:22px;
+        padding:16px;
+      }
+      .floor.ui-hidden{
+        transform:translateY(30px);
+      }
+      .f-title{font-size:20px}
+      .f-desc{margin-top:4px;font-size:11px}
+      .f-level-row{margin-top:10px;padding-top:10px}
+      .f-level-num{font-size:36px}
+      .f-note-wrap{display:none}
+      .enter-btn{margin-top:12px;height:42px}
+      .mode-toggle{
+        bottom:calc(12px + var(--sheet-h, 248px) + 12px);
+      }
+      .mode-toggle.ui-hidden{
+        transform:translateX(-50%) translateY(20px);
+      }
+      .hint{
+        bottom:auto;
+        top:calc(2.4vh + 48px);
+      }
+      .chip-sea,.chip-pool,.chip-roof{top:calc(2.4vh + 82px)}
+      .chip-entrance{
+        bottom:calc(12px + var(--sheet-h, 248px) + 60px);
+      }
+      .hotspot{
+        background:var(--blue);
+        border-color:rgba(255,255,255,.45);
+        padding:6px 12px;
+        box-shadow:0 8px 24px -8px rgba(47,134,255,.75);
+      }
+      .hotspot .h-dot{display:none}
+      .hotspot .h-lbl{max-width:180px;opacity:1}
+      .lvl-badge{left:12px;bottom:14px;padding:10px 14px}
+      .lvl-badge-num{font-size:20px;min-width:88px}
+      .info-chip{
+        right:12px;
+        bottom:14px;
+        padding:10px 14px;
+        min-width:0;
+        max-width:56vw;
+      }
+      .room-steppers{right:12px}
+    }
+
+    @media (prefers-reduced-motion:reduce){
+      .hotspot .h-dot::after{animation:none}
+      .poster,.progress-line,.room-ui,.modal-wrap,.modal,.hint,.footer-line,.reg-btn,.enter-btn,.back-btn,.floor,.rail-wrap,.mode-toggle,.mode-pill-bg,.chips-layer,.scene-chip{transition-duration:.01ms !important}
+    }
+  </style>
+</head>
+<body>
+  <div class="poster" id="poster" aria-hidden="true"></div>
+  <canvas id="blurBg" width="48" height="85" aria-hidden="true"></canvas>
+  <canvas id="main"></canvas>
+
+  <div class="progress-line" id="progressLine"><div class="progress-fill" id="progressFill"></div></div>
+
+  <header class="logo">
+    <div class="logo-main">PRAGEETH</div>
+    <div class="logo-sub">RESIDENCES</div>
+  </header>
+
+  <button class="reg-btn" id="regBtn" type="button">Register interest</button>
+
+  <aside class="rail-wrap" id="railWrap" aria-label="Level selector">
+    <span class="rail-lbl">26</span>
+    <div class="rail-track" id="railTrack" role="slider" aria-label="Tower level" aria-valuemin="1" aria-valuemax="26" aria-valuenow="6" tabindex="0">
+      <div class="rail-bar"></div>
+      <div class="rail-thumb" id="railThumb"></div>
+    </div>
+    <span class="rail-lbl">1</span>
+  </aside>
+
+  <section class="floor glass" id="floorCard" aria-label="Floor selector">
+    <h1 class="f-title">Choose<br>your floor</h1>
+    <p class="f-desc">Switch to Climb, then scroll or drag to rise through the tower. Each level opens a different home.</p>
+    <div class="f-level-row">
+      <span class="f-level-lbl">LEVEL</span>
+      <div class="f-level-ctrl">
+        <div class="f-step-col">
+          <button class="f-step-btn glass" id="cardStepUp" type="button" aria-label="Next level">▲</button>
+          <button class="f-step-btn glass" id="cardStepDown" type="button" aria-label="Previous level">▼</button>
+        </div>
+        <div class="ln f-level-num" id="fLevelNum"></div>
+      </div>
+    </div>
+    <div class="f-meta">
+      <div class="ln f-type" id="fType"></div>
+      <div class="ln f-note f-note-wrap" id="fNote"></div>
+      <div class="ln f-units" id="fUnits"></div>
+    </div>
+    <div class="f-rent-row">
+      <div class="ln f-rent" id="fRent"></div>
+      <div class="ln f-status-wrap" id="fStatus"></div>
+    </div>
+    <button class="enter-btn" id="enterBtn" type="button">Enter level 6</button>
+  </section>
+
+  <div class="chips-layer" id="chipsLayer" aria-hidden="true">
+    <div class="scene-chip glass chip-sea" id="chipSea">Sea view side</div>
+    <div class="scene-chip glass chip-pool" id="chipPool">Resort pool &amp; garden</div>
+    <div class="scene-chip glass chip-roof" id="chipRoof">Rooftop terrace</div>
+    <div class="scene-chip glass chip-entrance" id="chipEntrance">Main entrance</div>
+  </div>
+
+  <div class="hint" id="hint">Drag to rotate · Switch to Climb to choose a floor</div>
+
+  <div class="mode-toggle glass" id="modeToggle" role="tablist" aria-label="View mode">
+    <div class="mode-pill-bg" id="modePillBg"></div>
+    <button class="mode-btn active" data-mode="orbit" type="button" role="tab" aria-selected="true">Rotate</button>
+    <button class="mode-btn" data-mode="climb" type="button" role="tab" aria-selected="false">Climb</button>
+  </div>
+
+  <div class="footer-line" id="footerLine">Prageeth (Pvt) · Negombo, Sri Lanka · 0769356530</div>
+
+  <div class="curtain" id="curtain"></div>
+
+  <div class="interior" id="interior" aria-hidden="true">
+    <img class="interior-img" id="iRoom" alt="Residence interior">
+    <img class="interior-img" id="iRoomFade" alt="">
+    <div class="interior-vignette"></div>
+  </div>
+
+  <div class="room-ui" id="roomUi" aria-hidden="true">
+    <button class="back-btn glass room-ctrl" id="backBtn" type="button">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/>
+      </svg>
+      Back to the tower
+    </button>
+
+    <div class="room-steppers room-ctrl">
+      <button class="step-btn glass" id="stepUpBtn" type="button" aria-label="Next level">▲</button>
+      <button class="step-btn glass" id="stepDownBtn" type="button" aria-label="Previous level">▼</button>
+    </div>
+
+    <div class="lvl-badge glass room-ctrl">
+      <div class="lvl-badge-kicker">LEVEL</div>
+      <div class="ln lvl-badge-num" id="rLevelBadge"></div>
+    </div>
+
+    <div class="info-chip glass room-ctrl">
+      <div class="ln info-type" id="rInfoType"></div>
+      <div class="ln info-rent" id="rInfoRent"></div>
+      <div class="ln info-units" id="rInfoUnits"></div>
+    </div>
+
+    <div class="hotspots" id="hotspots"></div>
+  </div>
+
+  <div class="modal-wrap" id="modalWrap" aria-hidden="true">
+    <div class="modal glass" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-head">
+        <h2 class="modal-title" id="modalTitle">Register interest</h2>
+        <button class="modal-close" id="modalClose" type="button" aria-label="Close modal">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <form class="form-grid" id="regForm">
+        <div class="field">
+          <label for="fName">Name</label>
+          <input id="fName" type="text" placeholder="Your full name">
+        </div>
+        <div class="field">
+          <label for="fPhone">Phone / WhatsApp</label>
+          <input id="fPhone" type="tel" placeholder="07X XXX XXXX">
+        </div>
+        <div class="field">
+          <label for="fDate">Preferred viewing date</label>
+          <input id="fDate" type="date">
+        </div>
+        <div class="field">
+          <label for="fMsg">Message</label>
+          <textarea id="fMsg"></textarea>
+        </div>
+        <a class="wa-btn" id="waSend" href="https://wa.me/94769356530" target="_blank" rel="noopener noreferrer">Send on WhatsApp</a>
+        <a class="call-link" href="tel:0769356530">Or call 0769356530</a>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      const BASE="https://majestic-youtiao-f58857.netlify.app/";
+      const frame=(seq,i)=>`${BASE}${seq}/${String(i).padStart(4,"0")}.webp`;   // seq: "orbit" | "climb" | "enter", i: 1..60
+      const photo=(name)=>`${BASE}images/${name}`;
+
+      const FRAME_COUNT = 60;
+      const FRAME_ASPECT = 540 / 960;
+      const Lmin = 1;
+      const Lmax = 26;
+      const EASE = "cubic-bezier(.2,.8,.2,1)";
+
+      const LEVELS = [
+        {from:1,  to:1,  type:"Lobby & Reception",             note:"Reception, lounge and 24/7 security",              rent:null,   img:"lobby.jpg"},
+        {from:2,  to:7,  type:"Studio rooms",                  note:"Open studio with kitchenette, 30 m²",              rent:45000,  img:"studio.jpg"},
+        {from:8,  to:13, type:"One bedroom + sea-view balcony",note:"Sea-view balcony and full bathroom, 38 m²",        rent:65000,  img:"balcony.jpg"},
+        {from:14, to:19, type:"Two bedrooms + living room",    note:"Open living and kitchen with city views, 65 m²",   rent:85000,  img:"apartment.jpg"},
+        {from:20, to:25, type:"Spa suites",                    note:"Marble bathroom with freestanding tub, 72 m²",     rent:120000, img:"bathroom.jpg"},
+        {from:26, to:26, type:"Ocean penthouse suite",         note:"Master bedroom and terrace facing the sea, 95 m²", rent:150000, img:"suite.jpg"},
+      ];
+
+      const HOTSPOTS = {
+        "lobby.jpg":    [{l:"Reception",x:78,y:58},{l:"Lounge",x:24,y:70}],
+        "studio.jpg":   [{l:"Bedroom",x:28,y:62},{l:"Kitchenette",x:78,y:48}],
+        "balcony.jpg":  [{l:"Sea-View Balcony",x:40,y:62},{l:"Living Area",x:84,y:48}],
+        "apartment.jpg":[{l:"Living Room",x:32,y:64},{l:"Kitchen",x:78,y:48}],
+        "bathroom.jpg": [{l:"Bathroom",x:42,y:62},{l:"Bedroom",x:84,y:38}],
+        "suite.jpg":    [{l:"Master Bedroom",x:64,y:56},{l:"Sea-View Terrace",x:16,y:52}]
+      };
+
+      const STATUS_COLOR = {
+        "Available":   "#4ade80",
+        "Few left":    "#fbbf24",
+        "Booked":      "#9ca3af",
+        "Common area": "#ffffff"
+      };
+
+      // TODO: replace generated unit statuses with real data
+      function seededRand(seed) {
+        let x = (seed ^ 0x9e3779b9) >>> 0;
+        x = Math.imul(x ^ (x >>> 16), 0x85ebca6b) >>> 0;
+        x = Math.imul(x ^ (x >>> 13), 0xc2b2ae35) >>> 0;
+        return ((x ^ (x >>> 16)) >>> 0) / 4294967296;
+      }
+
+      const UNITS_BY_LEVEL = {};
+      for (let l = 2; l <= Lmax; l++) {
+        if (l === 26) {
+          UNITS_BY_LEVEL[l] = [{ num: "2601", status: "Booked" }];
+        } else {
+          const list = [];
+          for (let u = 1; u <= 4; u++) {
+            const r = seededRand(l * 10 + u);
+            list.push({
+              num: `${l}0${u}`,
+              status: r < 0.65 ? "Available" : "Booked"
+            });
+          }
+          UNITS_BY_LEVEL[l] = list;
+        }
+      }
+
+      function getLevelData(lvl) {
+        return LEVELS.find((entry) => lvl >= entry.from && lvl <= entry.to) || LEVELS[0];
+      }
+
+      function getLevelDerivedStatus(lvl) {
+        if (lvl === 1) return "Common area";
+        const units = UNITS_BY_LEVEL[lvl] || [];
+        const availCount = units.filter((u) => u.status === "Available").length;
+        if (availCount === 0) return "Booked";
+        if (availCount === 1) return "Few left";
+        return "Available";
+      }
+
+      function getLevelUnitsText(lvl) {
+        if (lvl === 1) return "Common area · Ground podium";
+        const units = UNITS_BY_LEVEL[lvl] || [];
+        const availCount = units.filter((u) => u.status === "Available").length;
+        return `${availCount} of ${units.length} unit${units.length > 1 ? "s" : ""} available`;
+      }
+
+      function formatRent(rent) {
+        if (rent == null) return "Common area";
+        return "LKR " + rent.toLocaleString("en-US") + " / month";
+      }
+
+      function formatRentModal(rent) {
+        if (rent == null) return "Common area";
+        return "LKR " + rent.toLocaleString("en-US") + "/month";
+      }
+
+      function statusChipHTML(status) {
+        const dotColor = STATUS_COLOR[status] || "#ffffff";
+        return `<span class="status-chip"><span class="status-dot" style="background:${dotColor}"></span>${status}</span>`;
+      }
+
+      const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+      const isPhone = () => window.innerWidth <= 767;
+
+      const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+      let reducedMotion = reducedMotionQuery.matches;
+      reducedMotionQuery.addEventListener("change", (e) => {
+        reducedMotion = e.matches;
+      });
+
+      function cubicBezierEase2(u) {
+        if (u <= 0) return 0;
+        if (u >= 1) return 1;
+        const cx = 3 * 0.65;
+        const bx = 3 * (0.35 - 0.65) - cx;
+        const ax = 1 - cx - bx;
+        let t = u;
+        for (let i = 0; i < 6; i++) {
+          const x = ((ax * t + bx) * t + cx) * t - u;
+          const dx = (3 * ax * t + 2 * bx) * t + cx;
+          if (Math.abs(x) < 1e-5 || Math.abs(dx) < 1e-6) break;
+          t -= x / dx;
+        }
+        t = clamp(t, 0, 1);
+        const by = 3;
+        const ay = 1 - by;
+        return ((ay * t + by) * t) * t;
+      }
+
+      // DOM refs
+      const mainCanvas = document.getElementById("main");
+      const mainCtx = mainCanvas.getContext("2d", { alpha: true });
+      const blurCanvas = document.getElementById("blurBg");
+      const blurCtx = blurCanvas.getContext("2d", { alpha: false });
+      const offCanvas = document.createElement("canvas");
+      const offCtx = offCanvas.getContext("2d", { alpha: true });
+
+      const posterEl = document.getElementById("poster");
+      const progressLine = document.getElementById("progressLine");
+      const progressFill = document.getElementById("progressFill");
+
+      const floorCard = document.getElementById("floorCard");
+      const railWrap = document.getElementById("railWrap");
+      const railTrack = document.getElementById("railTrack");
+      const railThumb = document.getElementById("railThumb");
+      const modeToggle = document.getElementById("modeToggle");
+      const modePillBg = document.getElementById("modePillBg");
+      const modeBtns = Array.from(modeToggle.querySelectorAll(".mode-btn"));
+      const chipsLayer = document.getElementById("chipsLayer");
+      const chipSea = document.getElementById("chipSea");
+      const chipPool = document.getElementById("chipPool");
+      const chipRoof = document.getElementById("chipRoof");
+      const chipEntrance = document.getElementById("chipEntrance");
+      const hintEl = document.getElementById("hint");
+      const footerLine = document.getElementById("footerLine");
+      const curtainEl = document.getElementById("curtain");
+
+      const fLevelNum = document.getElementById("fLevelNum");
+      const fType = document.getElementById("fType");
+      const fNote = document.getElementById("fNote");
+      const fUnits = document.getElementById("fUnits");
+      const fRent = document.getElementById("fRent");
+      const fStatus = document.getElementById("fStatus");
+      const enterBtn = document.getElementById("enterBtn");
+      const cardStepUp = document.getElementById("cardStepUp");
+      const cardStepDown = document.getElementById("cardStepDown");
+
+      const interiorEl = document.getElementById("interior");
+      const iRoom = document.getElementById("iRoom");
+      const iRoomFade = document.getElementById("iRoomFade");
+      const roomUiEl = document.getElementById("roomUi");
+      const backBtn = document.getElementById("backBtn");
+      const stepUpBtn = document.getElementById("stepUpBtn");
+      const stepDownBtn = document.getElementById("stepDownBtn");
+      const rLevelBadge = document.getElementById("rLevelBadge");
+      const rInfoType = document.getElementById("rInfoType");
+      const rInfoRent = document.getElementById("rInfoRent");
+      const rInfoUnits = document.getElementById("rInfoUnits");
+      const hotspotsEl = document.getElementById("hotspots");
+
+      const regBtn = document.getElementById("regBtn");
+      const modalWrap = document.getElementById("modalWrap");
+      const modalClose = document.getElementById("modalClose");
+      const fName = document.getElementById("fName");
+      const fPhone = document.getElementById("fPhone");
+      const fDate = document.getElementById("fDate");
+      const fMsg = document.getElementById("fMsg");
+      const waSend = document.getElementById("waSend");
+
+      // Sequence cache & loader
+      const loaded = {
+        orbit: new Array(FRAME_COUNT).fill(null),
+        climb: new Array(FRAME_COUNT).fill(null),
+        enter: new Array(FRAME_COUNT).fill(null)
+      };
+      const seqState = {
+        orbit: new Array(FRAME_COUNT).fill("idle"), // idle | loading | loaded | error
+        climb: new Array(FRAME_COUNT).fill("idle"),
+        enter: new Array(FRAME_COUNT).fill("idle")
+      };
+      const seqPromises = {
+        orbit: new Array(FRAME_COUNT).fill(null),
+        climb: new Array(FRAME_COUNT).fill(null),
+        enter: new Array(FRAME_COUNT).fill(null)
+      };
+      const lastGoodSeqImg = { orbit: null, climb: null, enter: null };
+      let lastDrawnGlobal = null;
+      let totalLoadedCount = 0;
+      let firstDrawn = false;
+      let posterDismissed = false;
+
+      const photoCache = new Map();
+      function prefetchPhoto(name) {
+        if (!name || photoCache.has(name)) return photoCache.get(name);
+        const img = new Image();
+        img.decoding = "async";
+        const entry = { img, loaded: false, failed: false, promise: null };
+        entry.promise = new Promise((resolve) => {
+          img.onload = () => { entry.loaded = true; resolve(entry); };
+          img.onerror = () => { entry.failed = true; resolve(entry); };
+        });
+        img.src = photo(name);
+        photoCache.set(name, entry);
+        return entry;
+      }
+
+      function updateProgressBar() {
+        const phone = isPhone();
+        const totalTarget = phone ? FRAME_COUNT : FRAME_COUNT * 3;
+        const doneCount = phone
+          ? seqState.orbit.filter((s) => s === "loaded" || s === "error").length
+          : totalLoadedCount;
+        const pct = Math.min(100, Math.round((doneCount / totalTarget) * 100));
+        progressFill.style.width = `${pct}%`;
+        if (doneCount >= totalTarget) {
+          progressLine.classList.add("done");
+        }
+      }
+
+      function dismissPoster() {
+        if (posterDismissed) return;
+        posterDismissed = true;
+        posterEl.classList.add("hidden");
+        setTimeout(() => {
+          posterEl.style.display = "none";
+        }, 850);
+      }
+
+      function loadSingleFrame(seq, idx) {
+        if (seqState[seq][idx] === "loaded" || seqState[seq][idx] === "error") {
+          return Promise.resolve();
+        }
+        if (seqState[seq][idx] === "loading" && seqPromises[seq][idx]) {
+          return seqPromises[seq][idx];
+        }
+        seqState[seq][idx] = "loading";
+        const p = new Promise((resolve) => {
+          const im = new Image();
+          im.decoding = "async";
+          im.onload = () => {
+            loaded[seq][idx] = im;
+            seqState[seq][idx] = "loaded";
+            lastGoodSeqImg[seq] = im;
+            totalLoadedCount++;
+            updateProgressBar();
+            if (!firstDrawn) {
+              draw();
+            }
+            resolve();
+          };
+          im.onerror = () => {
+            console.warn("frame failed", im.src);
+            seqState[seq][idx] = "error";
+            totalLoadedCount++;
+            updateProgressBar();
+            resolve();
+          };
+          im.src = frame(seq, idx + 1);
+        });
+        seqPromises[seq][idx] = p;
+        return p;
+      }
+
+      const seqStarted = { orbit: false, climb: false, enter: false };
+      async function loadSequence(seq) {
+        if (seqStarted[seq]) return;
+        seqStarted[seq] = true;
+        const concurrency = 4;
+        let cursor = 0;
+        async function worker() {
+          while (cursor < FRAME_COUNT) {
+            const idx = cursor++;
+            if (seqState[seq][idx] === "idle") {
+              await loadSingleFrame(seq, idx);
+            }
+          }
+        }
+        const workers = [];
+        for (let w = 0; w < concurrency; w++) workers.push(worker());
+        await Promise.all(workers);
+      }
+
+      async function startPreloading() {
+        posterEl.style.backgroundImage = `url('${photo("building.jpg")}')`;
+        await loadSingleFrame("orbit", 0);
+        await loadSequence("orbit");
+        if (!isPhone()) {
+          await loadSequence("climb");
+          await loadSequence("enter");
+        }
+      }
+
+      function getBestFrameImage(seq, idx) {
+        const direct = loaded[seq][idx];
+        if (direct) return direct;
+        for (let offset = 1; offset < FRAME_COUNT; offset++) {
+          if (idx - offset >= 0 && loaded[seq][idx - offset]) {
+            return loaded[seq][idx - offset];
+          }
+          if (idx + offset < FRAME_COUNT && loaded[seq][idx + offset]) {
+            return loaded[seq][idx + offset];
+          }
+        }
+        return lastGoodSeqImg[seq] || lastDrawnGlobal;
+      }
+
+      // App State
+      let currentLevel = 6;
+      let mode = "orbit"; // "orbit" | "climb"
+      let prevMode = "orbit";
+      let modeCrossfade = null; // { fromSeq, fromPos, start, dur }
+
+      let orbitTarget = 0;
+      let orbitCur = 0;
+      let orbitVel = 0;
+      let autoDir = 1;
+
+      const levelToClimbPos = (lvl) => ((lvl - 1) / (Lmax - Lmin)) * (FRAME_COUNT - 1);
+      const climbPosToLevel = (pos) => clamp(Math.round(1 + (pos / (FRAME_COUNT - 1)) * (Lmax - Lmin)), Lmin, Lmax);
+
+      let climbTarget = levelToClimbPos(currentLevel);
+      let climbCur = climbTarget;
+      let climbSnapTimer = null;
+
+      let enterOverride = null; // { pos } during enter/exit animation
+      let enterCrossfadeFrom = null; // { seq, pos, start, dur }
+
+      let isDraggingCanvas = false;
+      let dragStartX = 0;
+      let dragStartY = 0;
+      let dragLastX = 0;
+      let dragLastY = 0;
+      let dragVel = 0;
+      let hasInteracted = false;
+      let lastInputTime = Date.now();
+      let isTransitioning = false;
+      let inInterior = false;
+      let activeHotspot = null;
+      let dirtyRender = true;
+      let canvasW = 0;
+      let canvasH = 0;
+      let dpr = 1;
+
+      function markInteracted() {
+        lastInputTime = Date.now();
+        if (!hasInteracted) {
+          hasInteracted = true;
+          hintEl.classList.remove("show");
+        }
+      }
+
+      // Rolling text utility
+      const rollState = new WeakMap();
+      function setRoll(el, html, dir = 1, instant = false) {
+        if (instant || reducedMotion || !rollState.has(el)) {
+          el.innerHTML = `<span class="ln-inner">${html}</span>`;
+          rollState.set(el, html);
+          return;
+        }
+        if (rollState.get(el) === html) return;
+        rollState.set(el, html);
+
+        const prev = el.querySelector(".ln-inner:not(.ln-leaving)");
+        const next = document.createElement("span");
+        next.className = "ln-inner ln-enter";
+        next.innerHTML = html;
+        next.style.transform = `translateY(${dir >= 0 ? "110%" : "-110%"})`;
+        next.style.opacity = "0";
+        el.appendChild(next);
+
+        if (prev) {
+          prev.classList.add("ln-leaving");
+          prev.style.transition = `transform 520ms ${EASE}, opacity 420ms ${EASE}`;
+        }
+        next.getBoundingClientRect();
+        next.style.transition = `transform 520ms ${EASE}, opacity 420ms ${EASE}`;
+        next.style.transform = "translateY(0)";
+        next.style.opacity = "1";
+
+        if (prev) {
+          prev.style.transform = `translateY(${dir >= 0 ? "-110%" : "110%"})`;
+          prev.style.opacity = "0";
+        }
+        setTimeout(() => {
+          next.classList.remove("ln-enter");
+          next.style.transition = "";
+          if (prev && prev.parentNode === el) prev.remove();
+          el.querySelectorAll(".ln-leaving").forEach((n) => n.remove());
+        }, 560);
+      }
+
+      function syncSheetHeightVar() {
+        if (isPhone()) {
+          const h = floorCard.offsetHeight;
+          document.documentElement.style.setProperty("--sheet-h", `${h}px`);
+        }
+      }
+
+      function updateRailThumb(posOverride) {
+        const h = railTrack.clientHeight || 300;
+        const frac = posOverride != null
+          ? clamp(posOverride / (FRAME_COUNT - 1), 0, 1)
+          : (currentLevel - Lmin) / (Lmax - Lmin);
+        railThumb.style.transform = `translateY(${-frac * h}px)`;
+        railTrack.setAttribute("aria-valuenow", String(currentLevel));
+      }
+
+      function updateUIForLevel(lvl, prevLvl, instant = false) {
+        const dir = lvl >= prevLvl ? 1 : -1;
+        const data = getLevelData(lvl);
+        const status = getLevelDerivedStatus(lvl);
+        const unitsTxt = getLevelUnitsText(lvl);
+        const rentTxt = formatRent(data.rent);
+
+        setRoll(fLevelNum, String(lvl), dir, instant);
+        setRoll(fType, data.type, dir, instant);
+        setRoll(fNote, data.note, dir, instant);
+        setRoll(fUnits, unitsTxt, dir, instant);
+        setRoll(fRent, rentTxt, dir, instant);
+        setRoll(fStatus, statusChipHTML(status), dir, instant);
+
+        if (status === "Booked") {
+          enterBtn.textContent = "Join waitlist";
+          enterBtn.classList.add("is-waitlist");
+        } else {
+          enterBtn.textContent = `Enter level ${lvl}`;
+          enterBtn.classList.remove("is-waitlist");
+        }
+
+        cardStepUp.disabled = lvl >= Lmax;
+        cardStepDown.disabled = lvl <= Lmin;
+
+        setRoll(rLevelBadge, `Level ${lvl}`, dir, instant);
+        setRoll(rInfoType, data.type, dir, instant);
+        setRoll(rInfoRent, rentTxt, dir, instant);
+        setRoll(rInfoUnits, unitsTxt, dir, instant);
+
+        stepUpBtn.disabled = lvl >= Lmax;
+        stepDownBtn.disabled = lvl <= Lmin;
+
+        updateRailThumb(mode === "climb" ? climbCur : null);
+        prefetchPhoto(data.img);
+        updateChips();
+        syncSheetHeightVar();
+      }
+
+      function setLevel(newLvl, options = {}) {
+        const clamped = clamp(Math.round(newLvl), Lmin, Lmax);
+        const prev = currentLevel;
+        if (clamped === prev && !options.force) return;
+        currentLevel = clamped;
+        if (!options.keepClimb) {
+          climbTarget = levelToClimbPos(currentLevel);
+          if (reducedMotion || options.instantClimb) {
+            climbCur = climbTarget;
+          }
+        }
+        updateUIForLevel(currentLevel, prev, Boolean(options.instant));
+        dirtyRender = true;
+      }
+
+      // Segmented mode control
+      function positionModePill() {
+        const activeBtn = modeToggle.querySelector(`.mode-btn[data-mode="${mode}"]`);
+        if (!activeBtn) return;
+        const left = activeBtn.offsetLeft - 4;
+        modePillBg.style.width = `${activeBtn.offsetWidth}px`;
+        modePillBg.style.transform = `translateX(${left}px)`;
+      }
+
+      function setMode(nextMode) {
+        if (nextMode === mode || isTransitioning) return;
+        markInteracted();
+        prevMode = mode;
+        const prevPos = prevMode === "orbit" ? clamp(orbitCur, 0, FRAME_COUNT - 1) : clamp(climbCur, 0, FRAME_COUNT - 1);
+        mode = nextMode;
+
+        modeBtns.forEach((btn) => {
+          const isOn = btn.dataset.mode === mode;
+          btn.classList.toggle("active", isOn);
+          btn.setAttribute("aria-selected", String(isOn));
+        });
+        positionModePill();
+
+        if (mode === "climb") {
+          loadSequence("climb");
+          climbTarget = levelToClimbPos(currentLevel);
+          climbCur = climbTarget;
+          updateRailThumb(climbCur);
+        } else {
+          updateRailThumb();
+        }
+
+        if (!reducedMotion) {
+          modeCrossfade = {
+            fromSeq: prevMode,
+            fromPos: prevPos,
+            start: performance.now(),
+            dur: 600
+          };
+        } else {
+          modeCrossfade = null;
+        }
+        updateChips();
+        dirtyRender = true;
+      }
+
+      modeBtns.forEach((btn) => {
+        btn.addEventListener("click", () => setMode(btn.dataset.mode));
+      });
+
+      // Context chips visibility
+      function updateChips() {
+        if (inInterior || isTransitioning) {
+          chipSea.classList.remove("show");
+          chipPool.classList.remove("show");
+          chipRoof.classList.remove("show");
+          chipEntrance.classList.remove("show");
+          return;
+        }
+        if (mode === "orbit") {
+          const p = clamp(orbitCur, 0, FRAME_COUNT - 1);
+          chipSea.classList.toggle("show", p < 18);
+          chipPool.classList.toggle("show", p > 42);
+          chipRoof.classList.remove("show");
+          chipEntrance.classList.remove("show");
+        } else {
+          chipSea.classList.remove("show");
+          chipPool.classList.remove("show");
+          chipRoof.classList.toggle("show", currentLevel >= 24);
+          chipEntrance.classList.toggle("show", currentLevel <= 2);
+        }
+      }
+
+      // Canvas resize & drawing
+      function resizeCanvas() {
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        canvasW = Math.round(w * dpr);
+        canvasH = Math.round(h * dpr);
+        mainCanvas.width = canvasW;
+        mainCanvas.height = canvasH;
+        offCanvas.width = canvasW;
+        offCanvas.height = canvasH;
+
+        const screenAspect = w / Math.max(1, h);
+        const widerThanFrame = !isPhone() && screenAspect > FRAME_ASPECT;
+        mainCanvas.classList.toggle("soft-edges", widerThanFrame);
+        blurCanvas.style.display = widerThanFrame ? "block" : "none";
+
+        updateRailThumb(mode === "climb" ? climbCur : null);
+        positionModePill();
+        syncSheetHeightVar();
+        draw();
+      }
+
+      function computeDrawRect(ctxW, ctxH, imgW, imgH, cover) {
+        const imgAspect = imgW / imgH;
+        const ctxAspect = ctxW / ctxH;
+        let dw, dh, dx, dy;
+        if (cover) {
+          if (ctxAspect > imgAspect) {
+            dw = ctxW;
+            dh = ctxW / imgAspect;
+          } else {
+            dh = ctxH;
+            dw = ctxH * imgAspect;
+          }
+          dx = (ctxW - dw) * 0.5;
+          dy = (ctxH - dh) * 0.5;
+        } else {
+          dh = ctxH;
+          dw = ctxH * imgAspect;
+          dx = (ctxW - dw) * 0.5;
+          dy = 0;
+        }
+        return { dx, dy, dw, dh };
+      }
+
+      function drawBlendedSequence(ctx, ctxW, ctxH, seq, pos, cover, featherEdges) {
+        const p = clamp(pos, 0, FRAME_COUNT - 1);
+        const i0 = Math.floor(p);
+        const i1 = Math.min(FRAME_COUNT - 1, i0 + 1);
+        const frac = p - i0;
+
+        const img0 = getBestFrameImage(seq, i0);
+        if (!img0) return null;
+
+        lastDrawnGlobal = img0;
+        const rect = computeDrawRect(ctxW, ctxH, img0.naturalWidth || 540, img0.naturalHeight || 960, cover);
+
+        ctx.globalAlpha = 1;
+        ctx.drawImage(img0, rect.dx, rect.dy, rect.dw, rect.dh);
+
+        if (frac > 0.001 && i1 !== i0 && loaded[seq][i1]) {
+          ctx.globalAlpha = frac;
+          ctx.drawImage(loaded[seq][i1], rect.dx, rect.dy, rect.dw, rect.dh);
+        }
+        ctx.globalAlpha = 1;
+
+        if (featherEdges && !cover && rect.dw < ctxW) {
+          ctx.save();
+          ctx.globalCompositeOperation = "destination-in";
+          const grad = ctx.createLinearGradient(rect.dx, 0, rect.dx + rect.dw, 0);
+          grad.addColorStop(0, "rgba(0,0,0,0)");
+          grad.addColorStop(0.08, "rgba(0,0,0,1)");
+          grad.addColorStop(0.92, "rgba(0,0,0,1)");
+          grad.addColorStop(1, "rgba(0,0,0,0)");
+          ctx.fillStyle = grad;
+          ctx.fillRect(0, 0, ctxW, ctxH);
+          ctx.restore();
+        }
+        return img0;
+      }
+
+      function draw(now = performance.now()) {
+        if (!canvasW || !canvasH) return;
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        const useCover = isPhone() || (w / Math.max(1, h) <= FRAME_ASPECT);
+
+        mainCtx.clearRect(0, 0, canvasW, canvasH);
+
+        let activeSeq = mode;
+        let activePos = mode === "orbit" ? orbitCur : climbCur;
+
+        if (enterOverride != null) {
+          activeSeq = "enter";
+          activePos = enterOverride.pos;
+        }
+
+        let drew = null;
+
+        if (enterCrossfadeFrom) {
+          const t = clamp((now - enterCrossfadeFrom.start) / enterCrossfadeFrom.dur, 0, 1);
+          offCtx.clearRect(0, 0, canvasW, canvasH);
+          const a = drawBlendedSequence(offCtx, canvasW, canvasH, enterCrossfadeFrom.seq, enterCrossfadeFrom.pos, useCover, !useCover);
+          if (a) {
+            mainCtx.globalAlpha = 1 - t;
+            mainCtx.drawImage(offCanvas, 0, 0);
+            drew = a;
+          }
+
+          offCtx.clearRect(0, 0, canvasW, canvasH);
+          const b = drawBlendedSequence(offCtx, canvasW, canvasH, activeSeq, activePos, useCover, !useCover);
+          if (b) {
+            mainCtx.globalAlpha = t;
+            mainCtx.drawImage(offCanvas, 0, 0);
+            drew = b;
+          }
+          mainCtx.globalAlpha = 1;
+
+          if (!useCover && drew) {
+            blurCtx.fillStyle = "#0e0c0a";
+            blurCtx.fillRect(0, 0, 48, 85);
+            blurCtx.globalAlpha = 1 - t;
+            drawBlendedSequence(blurCtx, 48, 85, enterCrossfadeFrom.seq, enterCrossfadeFrom.pos, true, false);
+            blurCtx.globalAlpha = t;
+            drawBlendedSequence(blurCtx, 48, 85, activeSeq, activePos, true, false);
+            blurCtx.globalAlpha = 1;
+          }
+
+          if (t >= 1) enterCrossfadeFrom = null;
+        } else if (modeCrossfade && enterOverride == null) {
+          const t = clamp((now - modeCrossfade.start) / modeCrossfade.dur, 0, 1);
+          offCtx.clearRect(0, 0, canvasW, canvasH);
+          const a = drawBlendedSequence(offCtx, canvasW, canvasH, modeCrossfade.fromSeq, modeCrossfade.fromPos, useCover, !useCover);
+          if (a) {
+            mainCtx.globalAlpha = 1 - t;
+            mainCtx.drawImage(offCanvas, 0, 0);
+            drew = a;
+          }
+
+          offCtx.clearRect(0, 0, canvasW, canvasH);
+          const b = drawBlendedSequence(offCtx, canvasW, canvasH, activeSeq, activePos, useCover, !useCover);
+          if (b) {
+            mainCtx.globalAlpha = t;
+            mainCtx.drawImage(offCanvas, 0, 0);
+            drew = b;
+          }
+          mainCtx.globalAlpha = 1;
+
+          if (!useCover && drew) {
+            blurCtx.fillStyle = "#0e0c0a";
+            blurCtx.fillRect(0, 0, 48, 85);
+            blurCtx.globalAlpha = 1 - t;
+            drawBlendedSequence(blurCtx, 48, 85, modeCrossfade.fromSeq, modeCrossfade.fromPos, true, false);
+            blurCtx.globalAlpha = t;
+            drawBlendedSequence(blurCtx, 48, 85, activeSeq, activePos, true, false);
+            blurCtx.globalAlpha = 1;
+          }
+
+          if (t >= 1) modeCrossfade = null;
+        } else {
+          drew = drawBlendedSequence(mainCtx, canvasW, canvasH, activeSeq, activePos, useCover, !useCover);
+          if (!useCover && drew) {
+            blurCtx.fillStyle = "#0e0c0a";
+            blurCtx.fillRect(0, 0, 48, 85);
+            drawBlendedSequence(blurCtx, 48, 85, activeSeq, activePos, true, false);
+          }
+        }
+
+        if (drew && !firstDrawn) {
+          firstDrawn = true;
+          blurCanvas.classList.add("ready");
+          dismissPoster();
+        }
+      }
+
+      // Main animation loop
+      function tick(now) {
+        requestAnimationFrame(tick);
+
+        if (!inInterior && !isTransitioning && !modalWrap.classList.contains("open")) {
+          if (mode === "orbit") {
+            if (!isDraggingCanvas) {
+              if (!reducedMotion && Math.abs(orbitVel) > 0.001) {
+                orbitTarget += orbitVel;
+                orbitVel *= 0.93;
+                if (orbitTarget < 0 || orbitTarget > FRAME_COUNT - 1) {
+                  orbitVel *= 0.5;
+                }
+              } else {
+                orbitVel = 0;
+              }
+              if (orbitTarget < 0) {
+                orbitTarget *= 0.8;
+                if (Math.abs(orbitTarget) < 0.002) orbitTarget = 0;
+              } else if (orbitTarget > FRAME_COUNT - 1) {
+                orbitTarget = (FRAME_COUNT - 1) + (orbitTarget - (FRAME_COUNT - 1)) * 0.8;
+                if (Math.abs(orbitTarget - (FRAME_COUNT - 1)) < 0.002) orbitTarget = FRAME_COUNT - 1;
+              }
+              if (!reducedMotion && Date.now() - lastInputTime > 6000) {
+                orbitTarget += autoDir * 0.035;
+                if (orbitTarget >= FRAME_COUNT - 1) {
+                  orbitTarget = FRAME_COUNT - 1;
+                  autoDir = -1;
+                } else if (orbitTarget <= 0) {
+                  orbitTarget = 0;
+                  autoDir = 1;
+                }
+              }
+            }
+
+            const targetClamped = clamp(orbitTarget, 0, FRAME_COUNT - 1);
+            if (reducedMotion) {
+              orbitCur = targetClamped;
+            } else {
+              orbitCur += (targetClamped - orbitCur) * 0.1;
+              if (Math.abs(targetClamped - orbitCur) < 0.0005) orbitCur = targetClamped;
+            }
+            updateChips();
+          } else if (mode === "climb") {
+            const targetClamped = clamp(climbTarget, 0, FRAME_COUNT - 1);
+            if (reducedMotion) {
+              climbCur = targetClamped;
+            } else {
+              climbCur += (targetClamped - climbCur) * 0.1;
+              if (Math.abs(targetClamped - climbCur) < 0.0005) climbCur = targetClamped;
+            }
+            const derivedLvl = climbPosToLevel(climbTarget);
+            if (derivedLvl !== currentLevel) {
+              setLevel(derivedLvl, { keepClimb: true });
+            }
+            updateRailThumb(climbCur);
+          }
+        }
+
+        draw(now);
+      }
+
+      // Climb snap helper
+      function scheduleClimbSnap() {
+        clearTimeout(climbSnapTimer);
+        climbSnapTimer = setTimeout(() => {
+          if (mode === "climb" && !isDraggingCanvas && !isTransitioning) {
+            const lvl = climbPosToLevel(climbTarget);
+            climbTarget = levelToClimbPos(lvl);
+          }
+        }, 160);
+      }
+
+      // Pointer drag on canvas
+      mainCanvas.addEventListener("pointerdown", (e) => {
+        if (isTransitioning || inInterior || modalWrap.classList.contains("open")) return;
+        markInteracted();
+        isDraggingCanvas = true;
+        mainCanvas.classList.add("dragging");
+        mainCanvas.setPointerCapture(e.pointerId);
+        dragStartX = e.clientX;
+        dragStartY = e.clientY;
+        dragLastX = e.clientX;
+        dragLastY = e.clientY;
+        dragVel = 0;
+        orbitVel = 0;
+        clearTimeout(climbSnapTimer);
+      });
+
+      mainCanvas.addEventListener("pointermove", (e) => {
+        if (!isDraggingCanvas) return;
+        markInteracted();
+        const dx = e.clientX - dragLastX;
+        const dy = e.clientY - dragLastY;
+        dragLastX = e.clientX;
+        dragLastY = e.clientY;
+
+        if (mode === "orbit") {
+          let delta = -dx * 0.06;
+          if (orbitTarget < 0 || orbitTarget > FRAME_COUNT - 1) {
+            delta *= 0.25;
+          }
+          orbitTarget = clamp(orbitTarget + delta, -2.5, FRAME_COUNT - 1 + 2.5);
+          dragVel = delta;
+          if (reducedMotion) orbitCur = clamp(orbitTarget, 0, FRAME_COUNT - 1);
+        } else {
+          // Dragging up (dy < 0) climbs
+          climbTarget = clamp(climbTarget - dy * 0.1, 0, FRAME_COUNT - 1);
+          if (reducedMotion) climbCur = climbTarget;
+        }
+        dirtyRender = true;
+      });
+
+      function endCanvasDrag(e) {
+        if (!isDraggingCanvas) return;
+        isDraggingCanvas = false;
+        mainCanvas.classList.remove("dragging");
+        try { mainCanvas.releasePointerCapture(e.pointerId); } catch {}
+        if (mode === "orbit" && !reducedMotion) {
+          orbitVel = clamp(dragVel, -2.2, 2.2);
+        } else if (mode === "climb") {
+          scheduleClimbSnap();
+        }
+      }
+      mainCanvas.addEventListener("pointerup", endCanvasDrag);
+      mainCanvas.addEventListener("pointercancel", endCanvasDrag);
+
+      // Wheel in Climb mode
+      window.addEventListener("wheel", (e) => {
+        if (isTransitioning || inInterior || modalWrap.classList.contains("open")) return;
+        if (mode !== "climb") return;
+        e.preventDefault();
+        markInteracted();
+        climbTarget = clamp(climbTarget + e.deltaY * 0.03, 0, FRAME_COUNT - 1);
+        if (reducedMotion) climbCur = climbTarget;
+        scheduleClimbSnap();
+        dirtyRender = true;
+      }, { passive: false });
+
+      // Level rail click & drag
+      let draggingRail = false;
+      function levelFromRailEvent(e) {
+        const rect = railTrack.getBoundingClientRect();
+        const frac = clamp(1 - (e.clientY - rect.top) / rect.height, 0, 1);
+        return Math.round(Lmin + frac * (Lmax - Lmin));
+      }
+
+      railTrack.addEventListener("pointerdown", (e) => {
+        if (isTransitioning || inInterior) return;
+        e.preventDefault();
+        markInteracted();
+        draggingRail = true;
+        railTrack.setPointerCapture(e.pointerId);
+        if (mode !== "climb") setMode("climb");
+        setLevel(levelFromRailEvent(e));
+      });
+      railTrack.addEventListener("pointermove", (e) => {
+        if (!draggingRail) return;
+        setLevel(levelFromRailEvent(e));
+      });
+      function endRailDrag(e) {
+        if (!draggingRail) return;
+        draggingRail = false;
+        try { railTrack.releasePointerCapture(e.pointerId); } catch {}
+      }
+      railTrack.addEventListener("pointerup", endRailDrag);
+      railTrack.addEventListener("pointercancel", endRailDrag);
+
+      // Floor card steppers
+      cardStepUp.addEventListener("click", () => {
+        if (isTransitioning) return;
+        markInteracted();
+        setLevel(currentLevel + 1);
+      });
+      cardStepDown.addEventListener("click", () => {
+        if (isTransitioning) return;
+        markInteracted();
+        setLevel(currentLevel - 1);
+      });
+
+      // Hotspots & Room rendering
+      function resetHotspotZoom(immediate = false) {
+        activeHotspot = null;
+        hotspotsEl.querySelectorAll(".hotspot").forEach((h) => h.classList.remove("active"));
+        iRoom.style.transition = immediate || reducedMotion ? "none" : `transform 700ms ${EASE}`;
+        iRoom.style.transformOrigin = "50% 50%";
+        iRoom.style.transform = "scale(1)";
+      }
+
+      function renderHotspots(imgName) {
+        hotspotsEl.innerHTML = "";
+        activeHotspot = null;
+        const items = HOTSPOTS[imgName] || [];
+        items.forEach((spot, idx) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "hotspot";
+          btn.style.left = `${spot.x}%`;
+          btn.style.top = `${spot.y}%`;
+          btn.setAttribute("aria-label", spot.l);
+          btn.innerHTML = `<span class="h-dot"></span><span class="h-lbl">${spot.l}</span>`;
+          btn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            if (isTransitioning) return;
+            if (activeHotspot === idx) {
+              resetHotspotZoom(false);
+            } else {
+              activeHotspot = idx;
+              hotspotsEl.querySelectorAll(".hotspot").forEach((h, i) => {
+                h.classList.toggle("active", i === idx);
+              });
+              iRoom.style.transition = reducedMotion ? "none" : `transform 700ms ${EASE}`;
+              iRoom.style.transformOrigin = `${spot.x}% ${spot.y}%`;
+              iRoom.style.transform = "scale(1.18)";
+            }
+          });
+          hotspotsEl.appendChild(btn);
+        });
+      }
+
+      // UI show / hide for tower
+      function setTowerUiVisible(visible) {
+        [floorCard, railWrap, modeToggle, chipsLayer, footerLine].forEach((el) => {
+          el.classList.toggle("ui-hidden", !visible);
+        });
+        if (!visible) hintEl.classList.remove("show");
+      }
+
+      // Enter level transition (~5.5s)
+      function sleep(ms) {
+        return new Promise((r) => setTimeout(r, ms));
+      }
+
+      function animateValue(duration, onStep) {
+        return new Promise((resolve) => {
+          const start = performance.now();
+          function frameStep(now) {
+            const raw = clamp((now - start) / duration, 0, 1);
+            onStep(raw);
+            if (raw < 1) requestAnimationFrame(frameStep);
+            else resolve();
+          }
+          requestAnimationFrame(frameStep);
+        });
+      }
+
+      async function enterLevel() {
+        if (isTransitioning || inInterior) return;
+        markInteracted();
+        isTransitioning = true;
+        updateChips();
+
+        const data = getLevelData(currentLevel);
+        const roomLoad = prefetchPhoto(data.img);
+        loadSequence("enter");
+
+        if (reducedMotion) {
+          setTowerUiVisible(false);
+          await roomLoad.promise;
+          iRoom.src = photo(data.img);
+          iRoom.style.transition = "none";
+          iRoom.style.transform = "scale(1)";
+          renderHotspots(data.img);
+          interiorEl.style.transition = "opacity 400ms linear";
+          interiorEl.style.opacity = "1";
+          interiorEl.classList.add("active");
+          interiorEl.setAttribute("aria-hidden", "false");
+          await sleep(400);
+          inInterior = true;
+          roomUiEl.classList.add("active");
+          roomUiEl.setAttribute("aria-hidden", "false");
+          isTransitioning = false;
+          return;
+        }
+
+        // Wait briefly for enter frame 1 if not yet ready
+        if (!loaded.enter[0]) {
+          await Promise.race([loadSingleFrame("enter", 0), sleep(600)]);
+        }
+
+        // 0 - 500ms: hide UI and crossfade current sequence -> enter frame 1
+        setTowerUiVisible(false);
+        const startSeq = mode;
+        const startPos = mode === "orbit" ? clamp(orbitCur, 0, FRAME_COUNT - 1) : clamp(climbCur, 0, FRAME_COUNT - 1);
+        enterOverride = { pos: 0 };
+        enterCrossfadeFrom = { seq: startSeq, pos: startPos, start: performance.now(), dur: 500 };
+        dirtyRender = true;
+        await sleep(500);
+        enterCrossfadeFrom = null;
+
+        // 500 - 4700ms: play enter frames 1 -> 60 eased with --ease2 over 4200ms
+        let flashTriggered = false;
+        await animateValue(4200, (raw) => {
+          const eased = cubicBezierEase2(raw);
+          enterOverride = { pos: eased * (FRAME_COUNT - 1) };
+          dirtyRender = true;
+
+          if (!flashTriggered && raw >= 0.6) {
+            flashTriggered = true;
+            animateValue(700, (fp) => {
+              curtainEl.style.opacity = String(0.5 * Math.sin(Math.PI * fp));
+            }).then(() => {
+              curtainEl.style.opacity = "0";
+            });
+          }
+        });
+
+        // 4700 - 5500ms: crossfade last enter frame -> room photo with scale(1.12 -> 1) settle
+        await Promise.race([roomLoad.promise, sleep(300)]);
+        iRoom.src = photo(data.img);
+        iRoom.style.transition = "none";
+        iRoom.style.transformOrigin = "50% 50%";
+        iRoom.style.transform = "scale(1.12)";
+        iRoom.getBoundingClientRect();
+
+        interiorEl.classList.add("active");
+        interiorEl.setAttribute("aria-hidden", "false");
+        interiorEl.style.transition = `opacity 800ms ${EASE}`;
+        interiorEl.style.opacity = "1";
+        iRoom.style.transition = `transform 800ms ${EASE}`;
+        iRoom.style.transform = "scale(1)";
+
+        renderHotspots(data.img);
+        await sleep(800);
+
+        inInterior = true;
+        enterOverride = null;
+        roomUiEl.classList.add("active");
+        roomUiEl.setAttribute("aria-hidden", "false");
+        isTransitioning = false;
+      }
+
+      async function exitLevel() {
+        if (isTransitioning || !inInterior) return;
+        isTransitioning = true;
+        resetHotspotZoom(false);
+        roomUiEl.classList.remove("active");
+        roomUiEl.setAttribute("aria-hidden", "true");
+
+        if (reducedMotion) {
+          interiorEl.style.transition = "opacity 400ms linear";
+          interiorEl.style.opacity = "0";
+          await sleep(400);
+          interiorEl.classList.remove("active");
+          interiorEl.setAttribute("aria-hidden", "true");
+          inInterior = false;
+          setTowerUiVisible(true);
+          updateChips();
+          dirtyRender = true;
+          isTransitioning = false;
+          return;
+        }
+
+        // Reveal enter frame 60 behind interior and fade interior out over 400ms
+        enterOverride = { pos: FRAME_COUNT - 1 };
+        dirtyRender = true;
+        interiorEl.style.transition = `opacity 400ms ${EASE}`;
+        interiorEl.style.opacity = "0";
+        await sleep(400);
+        interiorEl.classList.remove("active");
+        interiorEl.setAttribute("aria-hidden", "true");
+
+        // Reverse enter 60 -> 1 over 2500ms
+        await animateValue(2500, (raw) => {
+          const eased = cubicBezierEase2(raw);
+          enterOverride = { pos: (1 - eased) * (FRAME_COUNT - 1) };
+          dirtyRender = true;
+        });
+
+        // Crossfade enter frame 1 back to active tower mode over 500ms
+        enterOverride = null;
+        if (mode === "climb") {
+          climbTarget = levelToClimbPos(currentLevel);
+          climbCur = climbTarget;
+        }
+        enterCrossfadeFrom = { seq: "enter", pos: 0, start: performance.now(), dur: 500 };
+        dirtyRender = true;
+        setTowerUiVisible(true);
+        inInterior = false;
+        updateChips();
+        await sleep(500);
+        enterCrossfadeFrom = null;
+        isTransitioning = false;
+      }
+
+      // Interior room stepping (crossfades in 600ms)
+      let roomFadeTimer = null;
+      async function stepInteriorLevel(delta) {
+        if (isTransitioning || !inInterior) return;
+        const nextLvl = clamp(currentLevel + delta, Lmin, Lmax);
+        if (nextLvl === currentLevel) return;
+
+        const prevImg = getLevelData(currentLevel).img;
+        setLevel(nextLvl);
+        const nextImg = getLevelData(nextLvl).img;
+        resetHotspotZoom(false);
+
+        if (prevImg !== nextImg) {
+          const entry = prefetchPhoto(nextImg);
+          await Promise.race([entry.promise, sleep(350)]);
+          if (reducedMotion) {
+            iRoom.src = photo(nextImg);
+          } else {
+            clearTimeout(roomFadeTimer);
+            if (parseFloat(getComputedStyle(iRoomFade).opacity) > 0.2 && iRoomFade.src) {
+              iRoom.src = iRoomFade.src;
+            }
+            iRoomFade.src = photo(nextImg);
+            iRoomFade.style.transition = "none";
+            iRoomFade.style.opacity = "0";
+            iRoomFade.getBoundingClientRect();
+            iRoomFade.style.transition = `opacity 600ms ${EASE}`;
+            iRoomFade.style.opacity = "1";
+            roomFadeTimer = setTimeout(() => {
+              iRoom.src = photo(nextImg);
+              iRoomFade.style.transition = "none";
+              iRoomFade.style.opacity = "0";
+            }, 620);
+          }
+        }
+        renderHotspots(nextImg);
+      }
+
+      enterBtn.addEventListener("click", () => {
+        if (getLevelDerivedStatus(currentLevel) === "Booked") {
+          openModal();
+        } else {
+          enterLevel();
+        }
+      });
+      backBtn.addEventListener("click", exitLevel);
+      stepUpBtn.addEventListener("click", () => stepInteriorLevel(1));
+      stepDownBtn.addEventListener("click", () => stepInteriorLevel(-1));
+
+      // Booking modal
+      function updateWhatsAppHref() {
+        const lines = [];
+        const name = fName.value.trim();
+        const phone = fPhone.value.trim();
+        const date = fDate.value.trim();
+        const msg = fMsg.value.trim();
+        if (name) lines.push(`Name: ${name}`);
+        if (phone) lines.push(`Phone: ${phone}`);
+        if (date) lines.push(`Preferred viewing date: ${date}`);
+        if (msg) lines.push(`Message: ${msg}`);
+        const text = encodeURIComponent(lines.join("\n"));
+        waSend.href = `https://wa.me/94769356530?text=${text}`;
+      }
+
+      function openModal() {
+        const data = getLevelData(currentLevel);
+        fMsg.value = `I'm interested in Level ${currentLevel}, ${data.type}, ${formatRentModal(data.rent)}.`;
+        updateWhatsAppHref();
+        modalWrap.classList.add("open");
+        modalWrap.setAttribute("aria-hidden", "false");
+        setTimeout(() => fName.focus(), 100);
+      }
+
+      function closeModal() {
+        modalWrap.classList.remove("open");
+        modalWrap.setAttribute("aria-hidden", "true");
+      }
+
+      regBtn.addEventListener("click", openModal);
+      modalClose.addEventListener("click", closeModal);
+      modalWrap.addEventListener("click", (e) => {
+        if (e.target === modalWrap) closeModal();
+      });
+      [fName, fPhone, fDate, fMsg].forEach((input) => {
+        input.addEventListener("input", updateWhatsAppHref);
+      });
+
+      // Keyboard navigation
+      window.addEventListener("keydown", (e) => {
+        if (modalWrap.classList.contains("open")) {
+          if (e.key === "Escape") closeModal();
+          return;
+        }
+        if (isTransitioning) return;
+
+        if (inInterior) {
+          if (e.key === "Escape") {
+            exitLevel();
+          } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            stepInteriorLevel(1);
+          } else if (e.key === "ArrowDown") {
+            e.preventDefault();
+            stepInteriorLevel(-1);
+          }
+          return;
+        }
+
+        if (e.key === "ArrowLeft") {
+          if (mode === "orbit") {
+            e.preventDefault();
+            markInteracted();
+            orbitTarget = clamp(orbitTarget - 1.5, 0, FRAME_COUNT - 1);
+            if (reducedMotion) orbitCur = orbitTarget;
+          }
+        } else if (e.key === "ArrowRight") {
+          if (mode === "orbit") {
+            e.preventDefault();
+            markInteracted();
+            orbitTarget = clamp(orbitTarget + 1.5, 0, FRAME_COUNT - 1);
+            if (reducedMotion) orbitCur = orbitTarget;
+          }
+        } else if (e.key === "ArrowUp") {
+          if (mode === "climb") {
+            e.preventDefault();
+            markInteracted();
+            climbTarget = clamp(climbTarget + 2.4, 0, FRAME_COUNT - 1);
+            if (reducedMotion) climbCur = climbTarget;
+            scheduleClimbSnap();
+          }
+        } else if (e.key === "ArrowDown") {
+          if (mode === "climb") {
+            e.preventDefault();
+            markInteracted();
+            climbTarget = clamp(climbTarget - 2.4, 0, FRAME_COUNT - 1);
+            if (reducedMotion) climbCur = climbTarget;
+            scheduleClimbSnap();
+          }
+        } else if (e.key === "Enter") {
+          if (document.activeElement && document.activeElement.tagName === "BUTTON") return;
+          e.preventDefault();
+          if (getLevelDerivedStatus(currentLevel) === "Booked") {
+            openModal();
+          } else {
+            enterLevel();
+          }
+        }
+      });
+
+      // Initialize
+      function init() {
+        hintEl.textContent = isPhone()
+          ? "Drag · Switch to Climb"
+          : "Drag to rotate · Switch to Climb to choose a floor";
+        setTimeout(() => {
+          if (!hasInteracted) hintEl.classList.add("show");
+        }, 900);
+
+        updateUIForLevel(currentLevel, currentLevel, true);
+        resizeCanvas();
+        window.addEventListener("resize", () => {
+          hintEl.textContent = isPhone()
+            ? "Drag · Switch to Climb"
+            : "Drag to rotate · Switch to Climb to choose a floor";
+          resizeCanvas();
+        });
+
+        startPreloading();
+        requestAnimationFrame(tick);
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>
